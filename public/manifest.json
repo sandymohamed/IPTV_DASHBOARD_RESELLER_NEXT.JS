@@ -1,0 +1,29 @@
+{
+  "name": "IPTV Dashboard",
+  "short_name": "IPTV",
+  "description": "IPTV Reseller Dashboard with Notifications",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3366FF",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "permissions": [
+    "notifications",
+    "background-sync"
+  ],
+  "gcm_sender_id": "103953800507"
+}
