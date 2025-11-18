@@ -1,102 +1,32 @@
-/**
- * Authentication utilities
- */
+// lib/utils.ts
+import crypto from 'crypto'
 
-export function jwtDecode(token: string) {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      window
-        .atob(base64)
-        .split('')
-        .map((c) => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
-        .join('')
-    );
+// Replicate your Node.js password hashing
+// First hash with SHA1 (password + salt1), then hash with MD5 (sha1Hash + salt2)
+export function hashPassword(password: string): string {
+  const salt1 = process.env.SALT1 || process.env.SALTI || "AniMoh";
+  const salt2 = process.env.SALT2 || "AniSo";
 
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
-    }
-    return null;
-  }
-}
-
-export function isValidToken(accessToken: string | null): boolean {
-  if (!accessToken) {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
-    }
-    return false;
+  if (!salt1 || !salt2) {
+    console.error('⚠️ WARNING: Salt values not set in environment variables!')
+    console.error('SALT1:', salt1 ? 'SET' : 'NOT SET')
+    console.error('SALT2:', salt2 ? 'SET' : 'NOT SET')
   }
 
-  const decoded = jwtDecode(accessToken);
-  if (!decoded) return false;
+  // First hash with SHA1
+  const sha1Hash = crypto
+    .createHash("sha1")
+    .update(password + salt1)
+    .digest("hex")
 
-  const currentTime = Date.now() / 1000;
-  return decoded.exp > currentTime;
+  // Then hash with MD5
+  const md5Hash = crypto
+    .createHash("md5")
+    .update(sha1Hash + salt2)
+    .digest("hex")
+
+  return md5Hash
 }
 
-export function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('accessToken');
-}
-
-export function getUserFromToken() {
-  const token = getToken();
-  if (!token) return null;
-
-  try {
-    const payload = token.split('.')[1];
-    const decoded = window.atob(payload);
-    return JSON.parse(decoded);
-  } catch (error) {
-    return null;
-  }
-}
-
-export function setSession(accessToken: string | null) {
-  if (typeof window === 'undefined') return;
-
-  const clearSession = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
-    document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
-  };
-
-  if (accessToken) {
-    localStorage.setItem('accessToken', accessToken);
-    const decoded = jwtDecode(accessToken);
-    if (decoded?.exp) {
-      const expiryDate = new Date(decoded.exp * 1000);
-      const cookieParts = [
-        `accessToken=${accessToken}`,
-        'path=/',
-        `expires=${expiryDate.toUTCString()}`,
-        'SameSite=Lax',
-      ];
-      if (window.location.protocol === 'https:') {
-        cookieParts.push('Secure');
-      }
-      document.cookie = cookieParts.join('; ');
-
-      const timeLeft = expiryDate.getTime() - Date.now();
-      if (timeLeft > 0) {
-        setTimeout(() => {
-          clearSession();
-          window.location.href = '/auth/login';
-        }, timeLeft);
-      }
-    } else {
-      // Fallback cookie without expiry if token can't be decoded
-      document.cookie = `accessToken=${accessToken}; path=/; SameSite=Lax${
-        window.location.protocol === 'https:' ? '; Secure' : ''
-      }`;
-    }
-  } else {
-    clearSession();
-  }
-}
+// JWT secret
+export const JWT_SECRET = process.env.JWT_SECRET 

@@ -44,7 +44,7 @@ import { useForm } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { showToast } from '@/lib/utils/toast';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { useDashboardUser } from '@/lib/contexts/DashboardUserContext';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
 
 interface Column {
@@ -247,7 +247,7 @@ export default function SubResellersListPage() {
 
 function RowActions({ row }: { row: any }) {
   const router = useRouter();
-  const { user } = useAuthContext();
+  const { user } = useDashboardUser();
   const [busy, setBusy] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -407,7 +407,7 @@ const editSubResellerSchema: yup.ObjectSchema<EditSubResellerForm> = yup
   .required();
 
 function EditSubResellerDialog({ open, onClose, subResellerId, onSaved }: { open: boolean; onClose: () => void; subResellerId: string | number; onSaved: () => void | Promise<void> }) {
-  const { user } = useAuthContext();
+  const { user } = useDashboardUser();
   const [loading, setLoading] = useState(false);
   const [subResellerData, setSubResellerData] = useState<any>(null);
   const [memberGroups, setMemberGroups] = useState<any[]>([]);

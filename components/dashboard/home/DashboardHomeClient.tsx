@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback, useTransition } from 'react';
 import {
   Box,
   Typography,
@@ -16,12 +16,14 @@ import {
   TableHead,
   TablePagination,
   TableRow,
+  Button,
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
 import DevicesIcon from '@mui/icons-material/Devices';
 import TvIcon from '@mui/icons-material/Tv';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { logoutAction } from '@/lib/auth/actions';
+import { useDashboardUser } from '@/lib/contexts/DashboardUserContext';
 
 export interface DashboardStats {
   total_lines: number;
@@ -51,9 +53,19 @@ const columns = [
 ];
 
 export default function DashboardHomeClient({ stats, error }: DashboardHomeClientProps) {
-  const { user } = useAuthContext();
+  const { user } = useDashboardUser();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [isPending, startTransition] = useTransition();
+  const handleReAuth = useCallback(() => {
+    const currentPath =
+      typeof window !== 'undefined'
+        ? `${window.location.pathname}${window.location.search}`
+        : '/dashboard/home';
+    startTransition(() => {
+      logoutAction(currentPath);
+    });
+  }, [startTransition]);
 
   const tableRows = useMemo<TableData[]>(() => {
     if (!stats) return [];
@@ -106,6 +118,25 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
     setRowsPerPage(+event.target.value);
     setPage(0);
   };
+
+  if (error === 'SESSION_EXPIRED') {
+    return (
+      <Box>
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          Your session has expired. Please sign in again.
+          <Button
+            variant="contained"
+            color="primary"
+            sx={{ ml: 2 }}
+            onClick={handleReAuth}
+            disabled={isPending}
+          >
+            Go to Login
+          </Button>
+        </Alert>
+      </Box>
+    );
+  }
 
   if (error) {
     return (

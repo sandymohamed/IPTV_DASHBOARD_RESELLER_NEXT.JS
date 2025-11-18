@@ -13,9 +13,9 @@ const axiosInstance = axios.create({
 // Request interceptor to add Authorization header
 axiosInstance.interceptors.request.use(
   (config) => {
-    const accessToken = getToken();
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+    const token = getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -31,7 +31,7 @@ axiosInstance.interceptors.response.use(
     // If 401 and not already retried, logout and redirect
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      setSession(null);
+      await setSession(null);
       if (typeof window !== 'undefined') {
         window.location.href = '/auth/login';
       }

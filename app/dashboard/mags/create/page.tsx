@@ -28,7 +28,7 @@ import Grid from '@mui/material/Grid';
 import { createMag } from '@/lib/services/magsService';
 import { getPackagesMembersList } from '@/lib/services/packagesService';
 import { countries } from '@/lib/constants/countries';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { useDashboardUser } from '@/lib/contexts/DashboardUserContext';
 import { showToast } from '@/lib/utils/toast';
 
 // Dynamic import for code splitting and better performance
@@ -67,7 +67,7 @@ interface MagFormData {
 
 export default function MagsCreatePage() {
   const router = useRouter();
-  const { user, updateUser } = useAuthContext();
+  const { user } = useDashboardUser();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -231,7 +231,6 @@ export default function MagsCreatePage() {
 
       if (response?.data?.success || response?.success) {
         showToast.success(response?.data?.message || response?.message || 'MAG device created successfully');
-        updateUser();
         setTimeout(() => {
           router.push('/dashboard/mags/list');
         }, 1500);

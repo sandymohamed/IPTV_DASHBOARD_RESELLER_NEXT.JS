@@ -1,5 +1,8 @@
 'use client';
 
+// NOTE: Legacy client-side auth context kept only for reference during the SSR migration.
+// Prefer the server-based helpers in `lib/auth/session.ts` for new work.
+
 import { createContext, useContext, useEffect, useReducer, useCallback, useMemo, useState } from 'react';
 import axiosInstance from '@/lib/utils/axios';
 import { isValidToken, setSession, getToken } from '@/lib/utils/auth';
@@ -23,7 +26,7 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<any>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: () => Promise<void>;
 }
 
@@ -82,14 +85,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsInitializing(true);
 
     try {
-      const accessToken = getToken();
+      const token = getToken();
 
-      if (accessToken && isValidToken(accessToken)) {
+      if (token && isValidToken(token)) {
         try {
           const response = await axiosInstance.get('/auth/my_account');
           const { payload } = response.data;
 
-          setSession(accessToken);
+          await setSession(token);
 
           dispatch({
             type: 'INITIAL',
@@ -99,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             },
           });
         } catch (error) {
-          setSession(null);
+          await setSession(null);
           dispatch({
             type: 'INITIAL',
             payload: {
@@ -146,7 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { success, result, payload } = response.data;
 
       if (success) {
-        setSession(result);
+        await setSession(result);
         dispatch({
           type: 'LOGIN',
           payload,
@@ -177,11 +180,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
-    setSession(null);
+  const logout = useCallback(async () => {
+    await setSession(null);
     dispatch({ type: 'LOGOUT' });
     if (typeof window !== 'undefined') {
-      window.location.href = '/auth/login';
+      const currentPath = `${window.location.pathname}${window.location.search}`;
+      const loginUrl = `/auth/login?redirect=${encodeURIComponent(currentPath || '/')}`;
+      window.location.href = loginUrl;
     }
   }, []);
 

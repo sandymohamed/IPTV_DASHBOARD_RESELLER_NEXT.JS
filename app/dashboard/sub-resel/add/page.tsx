@@ -25,7 +25,7 @@ import {
 import { useRouter } from 'next/navigation';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { createSubReseller, getAllMemberGroupsName } from '@/lib/services/subResellersService';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { useDashboardUser } from '@/lib/contexts/DashboardUserContext';
 import { showToast } from '@/lib/utils/toast';
 
 const levelOptions = [
@@ -61,7 +61,7 @@ const subResellerSchema: yup.ObjectSchema<SubResellerFormData> = yup
 
 export default function SubResellersCreatePage() {
   const router = useRouter();
-  const { user } = useAuthContext();
+  const { user } = useDashboardUser();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [memberGroups, setMemberGroups] = useState<any[]>([]);

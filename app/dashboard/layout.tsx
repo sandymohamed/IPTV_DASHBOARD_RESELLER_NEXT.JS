@@ -1,10 +1,15 @@
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import AuthGuard from '@/components/auth/AuthGuard';
+export const dynamic = 'force-dynamic';
 
-export default function Layout({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthGuard>
-      <DashboardLayout>{children}</DashboardLayout>
-    </AuthGuard>
-  );
+import { redirect } from 'next/navigation';
+import { getServerSession } from '@/lib/auth/auth';
+// import DashboardLayout from '@/components/layout/DashboardLayout';
+
+export default async function Layout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession();
+
+  if (!session?.user) {
+    redirect('/auth/login');
+  }
+
+  return <>{children}</>;
 }

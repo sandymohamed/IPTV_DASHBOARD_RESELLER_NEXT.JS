@@ -1,11 +1,6 @@
-'use client';
-
-import * as React from 'react';
-import { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
-  CircularProgress,
   Alert,
   Paper,
   Table,
@@ -14,10 +9,9 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Icon,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { getOpenConnections } from '@/lib/services/dashboardService';
+import { fetchWithAuth } from '@/lib/server/fetchWithAuth';
 
 interface Column {
   id: string;
@@ -64,33 +58,28 @@ const columns: readonly Column[] = [
   { id: 'type', label: 'Type', minWidth: 100 },
 ];
 
-export default function ClientConnectionPage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [connections, setConnections] = useState<any[]>([]);
+type ConnectionsResponse = {
+  data?: Array<Record<string, any>>;
+  result?: Array<Record<string, any>>;
+};
 
-  useEffect(() => {
-    const fetchConnections = async () => {
-      try {
-        setLoading(true);
-        const data = await getOpenConnections();
-        setConnections(data || []);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load connections');
-      } finally {
-        setLoading(false);
-      }
-    };
+export const dynamic = 'force-dynamic';
 
-    fetchConnections();
-  }, []);
+export default async function ClientConnectionPage() {
+  let connections: Array<Record<string, any>> = [];
+  let errorMessage: string | null = null;
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+  try {
+    const response = await fetchWithAuth<ConnectionsResponse>('/main/client_connection', {
+      method: 'POST',
+    });
+
+    connections = response?.data ?? response?.result ?? [];
+  } catch (error) {
+    errorMessage =
+      error instanceof Error
+        ? error.message
+        : 'We could not load the client connections. Please try again later.';
   }
 
   return (
@@ -99,9 +88,9 @@ export default function ClientConnectionPage() {
         Client Connections
       </Typography>
 
-      {error && (
+      {errorMessage && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
+          {errorMessage}
         </Alert>
       )}
 

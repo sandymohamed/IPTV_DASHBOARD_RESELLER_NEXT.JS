@@ -493,7 +493,7 @@ function M3UDialog({ open, onClose, downloadData }: { open: boolean; onClose: ()
             <InputLabel>Output Format</InputLabel>
             <Select
               value={selectedFormat}
-              onChange={handleFormatChange}
+              // onChange={handleFormatChange}
               label="Output Format"
             >
               {downloadData && downloadData.map((item: any, index: number) => (

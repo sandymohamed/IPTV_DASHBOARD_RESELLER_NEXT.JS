@@ -1,223 +1,66 @@
-'use client';
+import CodesListClient from '@/components/dashboard/codes/CodesListClient';
+import { fetchWithAuth } from '@/lib/server/fetchWithAuth';
 
-import * as React from 'react';
-import { useEffect, useState } from 'react';
-import {
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-  Button,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import { getCodes } from '@/lib/services/codesService';
-import { useRouter } from 'next/navigation';
-
-interface Column {
-  id: string;
-  label: string;
-  minWidth?: number;
-  align?: 'right' | 'left' | 'center';
-  format?: (value: any, row?: any) => string | React.ReactNode;
-}
-
-const columns: readonly Column[] = [
-  { id: 'id', label: 'id', minWidth: 60 },
-  { id: 'online', label: 'Online', minWidth: 80, align: 'center' },
-  { id: 'admin_name', label: 'Reseller', minWidth: 120 },
-  { id: 'fullname', label: 'Fullname', minWidth: 120 },
-  { id: 'code', label: 'Code', minWidth: 100 },
-  { id: 'pkg', label: 'Days', minWidth: 80, align: 'center' },
-  { id: 'forced_country', label: 'Lock', minWidth: 80, align: 'center' },
-  { id: 'transid', label: ' TransId', minWidth: 100 },
-  { id: 'mac_type', label: 'Status', minWidth: 100, align: 'center' },
-  { id: 'mac', label: 'Mac', minWidth: 120 },
-  { id: 'serial', label: 'Serial', minWidth: 120 },
-  { id: 'date_start', label: 'Start', minWidth: 120, align: 'center', format: (value: string) => {
-    if (!value) return 'N/A';
-    try {
-      return new Date(value).toLocaleDateString();
-    } catch {
-      return value;
-    }
-  }},
-  { id: 'date_expire', label: 'Expire', minWidth: 120, align: 'center', format: (value: string) => {
-    if (!value) return 'N/A';
-    try {
-      return new Date(value).toLocaleDateString();
-    } catch {
-      return value;
-    }
-  }},
-  { id: 'inputBy', label: 'Input', minWidth: 100 },
-  { id: 'options', label: 'Options', minWidth: 100 },
-];
-
-export default function CodesListPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [codes, setCodes] = useState<any[]>([]);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [total, setTotal] = useState(0);
-
-  useEffect(() => {
-    const fetchCodes = async () => {
-      try {
-        setLoading(true);
-        const result = await getCodes({ page: page + 1, pageSize: rowsPerPage });
-        setCodes(result.data || []);
-        setTotal(result.total || 0);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load codes');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCodes();
-  }, [page, rowsPerPage]);
-
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
+type CodesListPageProps = {
+  searchParams?: {
+    page?: string;
+    pageSize?: string;
   };
+};
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
-  };
+type CodesPageResponse = {
+  data?: Array<Record<string, any>>;
+  result?: Array<Record<string, any>>;
+  total?: number;
+};
 
-  if (loading) {
+export const dynamic = 'force-dynamic';
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_PAGE_SIZE = 10;
+
+export default async function CodesListPage({ searchParams }: CodesListPageProps) {
+  const pageParam = Number(searchParams?.page ?? DEFAULT_PAGE);
+  const pageSizeParam = Number(searchParams?.pageSize ?? DEFAULT_PAGE_SIZE);
+
+  const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : DEFAULT_PAGE;
+  const pageSize =
+    Number.isFinite(pageSizeParam) && pageSizeParam > 0 ? pageSizeParam : DEFAULT_PAGE_SIZE;
+
+  try {
+    const response = await fetchWithAuth<CodesPageResponse>('/codes/page', {
+      method: 'POST',
+      body: JSON.stringify({
+        page,
+        pageSize,
+      }),
+    });
+
+    const rows = response?.data ?? response?.result ?? [];
+    const total = response?.total ?? rows.length;
+
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-        <CircularProgress />
-      </Box>
+      <CodesListClient
+        rows={rows}
+        total={total}
+        page={Math.max(page - 1, 0)}
+        pageSize={pageSize}
+      />
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'We could not load the codes list. Please try again.';
+
+    return (
+      <CodesListClient
+        rows={[]}
+        total={0}
+        page={0}
+        pageSize={pageSize}
+        error={message}
+      />
     );
   }
-
-  return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5 }}>
-        <Typography variant="h4">Codes List</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => router.push('/dashboard/codes/add-code')}
-        >
-          Create Code
-        </Button>
-      </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Paper 
-        sx={{ 
-          width: '100%', 
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          maxHeight: 'calc(100vh - 200px)',
-        }}
-      >
-        <TableContainer 
-          sx={{ 
-            maxHeight: 'calc(100vh - 300px)',
-            overflowX: 'auto',
-            overflowY: 'auto',
-            '&::-webkit-scrollbar': {
-              height: '8px',
-              width: '8px',
-            },
-            '&::-webkit-scrollbar-track': {
-              background: 'transparent',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              background: 'rgba(0,0,0,0.2)',
-              borderRadius: '4px',
-            },
-          }}
-        >
-          <Table stickyHeader aria-label="sticky table" sx={{ minWidth: 1400 }}>
-            <TableHead>
-              <TableRow>
-                {columns.map((column) => (
-                  <TableCell
-                    key={column.id}
-                    align={column.align || 'left'}
-                    sx={{ 
-                      minWidth: column.minWidth,
-                      whiteSpace: 'nowrap',
-                      fontWeight: 600,
-                      backgroundColor: 'background.paper',
-                      zIndex: 10,
-                    }}
-                  >
-                    {column.label}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {codes.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={columns.length} align="center" sx={{ py: 3 }}>
-                    No data available
-                  </TableCell>
-                </TableRow>
-              ) : (
-                codes.map((row) => {
-                  return (
-                    <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
-                      {columns.map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell 
-                            key={column.id} 
-                            align={column.align || 'left'}
-                            sx={{ whiteSpace: 'nowrap' }}
-                          >
-                            {column.format ? column.format(value, row) : (value !== null && value !== undefined ? String(value) : 'N/A')}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
-          component="div"
-          count={total}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          sx={{
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            position: 'sticky',
-            bottom: 0,
-            backgroundColor: 'background.paper',
-            zIndex: 5,
-          }}
-        />
-      </Paper>
-    </Box>
-  );
 }

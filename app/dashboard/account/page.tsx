@@ -1,18 +1,15 @@
-'use client';
+import { Box, Typography, Card, CardContent, Grid, Divider } from '@mui/material';
+import { getServerSession } from '@/lib/auth/auth';
+import { redirect } from 'next/navigation';
 
-import { Box, Typography, Card, CardContent, Grid, Divider, Alert } from '@mui/material';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
-
-export default function AccountPage() {
-  const { user } = useAuthContext();
-
-  if (!user) {
-    return (
-      <Box>
-        <Alert severity="error">User data not available</Alert>
-      </Box>
-    );
+export default async function AccountPage() {
+  const session = await getServerSession();
+  
+  if (!session?.user) {
+    redirect('/auth/login');
   }
+  
+  const user = session.user as any;
 
   return (
     <Box>
@@ -33,21 +30,21 @@ export default function AccountPage() {
                 <Typography variant="body2" color="text.secondary">
                   Username
                 </Typography>
-                <Typography variant="body1">{user.username || 'N/A'}</Typography>
+                <Typography variant="body1">{user.adm_username || user.name || user.email || 'N/A'}</Typography>
               </Box>
 
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2" color="text.secondary">
                   Email
                 </Typography>
-                <Typography variant="body1">{user.email || 'N/A'}</Typography>
+                <Typography variant="body1">{user.email || user.adm_username || 'N/A'}</Typography>
               </Box>
 
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2" color="text.secondary">
                   Admin Name
                 </Typography>
-                <Typography variant="body1">{user.admin_name || 'N/A'}</Typography>
+                <Typography variant="body1">{user.admin_name || user.adm_username || user.name || 'N/A'}</Typography>
               </Box>
 
               {user.balance !== undefined && (

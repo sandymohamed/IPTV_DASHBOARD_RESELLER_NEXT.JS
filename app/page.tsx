@@ -1,35 +1,43 @@
-'use client';
+// import { redirect } from 'next/navigation';
+// import { getLoginRedirect } from '@/lib/auth/utils';
+// import { isAuthenticated } from '@/lib/auth/session';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
-import { PATH_AFTER_LOGIN } from '@/lib/config';
-import { Box, CircularProgress } from '@mui/material';
+// export default async function HomePage() {
+//   const authenticated = await isAuthenticated();
+  
+//   if (authenticated) {
+//     redirect('/dashboard');
+//   } else {
+//     redirect(getLoginRedirect('/'));
+//   }
+// }
 
-export default function HomePage() {
-  const router = useRouter();
-  const { isInitialized, isAuthenticated } = useAuthContext();
+import { redirect } from 'next/navigation';
+import { getServerSession } from '@/lib/auth/auth';
 
-  useEffect(() => {
-    if (isInitialized) {
-      if (isAuthenticated) {
-        router.push(PATH_AFTER_LOGIN);
-      } else {
-        router.push('/auth/login');
-      }
+export default async function HomePage() {
+  console.log('🔵 [ROOT PAGE] Page rendering...')
+  
+  try {
+    console.log('🔵 [ROOT PAGE] Getting server session...')
+    const session = await getServerSession();
+
+    console.log('🔵 [ROOT PAGE] Session check:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      hasAdminid: !!session?.user?.adminid,
+      hasId: !!session?.user?.id
+    })
+
+    if (session?.user && (session.user.adminid || session.user.id)) {
+      console.log('🔵 [ROOT PAGE] ✅ User authenticated, redirecting to dashboard')
+      redirect('/dashboard');
+    } else {
+      console.log('🔵 [ROOT PAGE] ⚠️ No valid session, redirecting to login')
+      redirect('/auth/login');
     }
-  }, [isInitialized, isAuthenticated, router]);
-
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-      }}
-    >
-      <CircularProgress />
-    </Box>
-  );
+  } catch (error) {
+    console.error('🔵 [ROOT PAGE] ❌ Error:', error);
+    redirect('/auth/login');
+  }
 }

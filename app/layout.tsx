@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import { SettingsProvider } from '@/lib/contexts/SettingsContext';
-import { AuthProvider } from '@/lib/contexts/AuthContext';
 import ThemeProvider from '@/lib/theme';
 import NotificationSetup from '@/components/NotificationSetup';
 import ToastProvider from '@/components/ToastProvider';
 import './globals.css';
+import { AuthProvider } from './auth-provider';
 
 export const metadata: Metadata = {
   title: 'IPTV Dashboard ssssssssssssss',
@@ -33,13 +33,14 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body>
         <AuthProvider>
-          <SettingsProvider>
-            <ThemeProvider>
-              <NotificationSetup />
-              <ToastProvider />
-              {children}
-            </ThemeProvider>
-          </SettingsProvider>
+
+        <SettingsProvider>
+          <ThemeProvider>
+            <NotificationSetup />
+            <ToastProvider />
+            {children}
+          </ThemeProvider>
+        </SettingsProvider>
         </AuthProvider>
       </body>
     </html>

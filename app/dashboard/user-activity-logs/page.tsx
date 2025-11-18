@@ -1,11 +1,6 @@
-'use client';
-
-import * as React from 'react';
-import { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
-  CircularProgress,
   Alert,
   Paper,
   Table,
@@ -15,7 +10,7 @@ import {
   TableHead,
   TableRow,
 } from '@mui/material';
-import { getUserActivityLog } from '@/lib/services/logsService';
+import { fetchWithAuth } from '@/lib/server/fetchWithAuth';
 
 interface Column {
   id: string;
@@ -60,33 +55,28 @@ const columns: readonly Column[] = [
   }},
 ];
 
-export default function UserActivityLogsPage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [logs, setLogs] = useState<any[]>([]);
+type UserActivityResponse = {
+  data?: Array<Record<string, any>>;
+  result?: Array<Record<string, any>>;
+};
 
-  useEffect(() => {
-    const fetchLogs = async () => {
-      try {
-        setLoading(true);
-        const data = await getUserActivityLog();
-        setLogs(data || []);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load activity logs');
-      } finally {
-        setLoading(false);
-      }
-    };
+export const dynamic = 'force-dynamic';
 
-    fetchLogs();
-  }, []);
+export default async function UserActivityLogsPage() {
+  let logs: Array<Record<string, any>> = [];
+  let errorMessage: string | null = null;
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+  try {
+    const response = await fetchWithAuth<UserActivityResponse>('/user_activity', {
+      method: 'POST',
+    });
+
+    logs = response?.data ?? response?.result ?? [];
+  } catch (error) {
+    errorMessage =
+      error instanceof Error
+        ? error.message
+        : 'We could not load the activity logs. Please try again later.';
   }
 
   return (
@@ -95,23 +85,23 @@ export default function UserActivityLogsPage() {
         User Activity Logs
       </Typography>
 
-      {error && (
+      {errorMessage && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
+          {errorMessage}
         </Alert>
       )}
 
-      <Paper 
-        sx={{ 
-          width: '100%', 
+      <Paper
+        sx={{
+          width: '100%',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           maxHeight: 'calc(100vh - 200px)',
         }}
       >
-        <TableContainer 
-          sx={{ 
+        <TableContainer
+          sx={{
             maxHeight: 'calc(100vh - 300px)',
             overflowX: 'auto',
             overflowY: 'auto',
@@ -119,23 +109,20 @@ export default function UserActivityLogsPage() {
               height: '8px',
               width: '8px',
             },
-            '&::-webkit-scrollbar-track': {
-              background: 'transparent',
-            },
             '&::-webkit-scrollbar-thumb': {
               background: 'rgba(0,0,0,0.2)',
               borderRadius: '4px',
             },
           }}
         >
-          <Table stickyHeader aria-label="sticky table" sx={{ minWidth: 1000 }}>
+          <Table stickyHeader aria-label="activity logs table" sx={{ minWidth: 1000 }}>
             <TableHead>
               <TableRow>
                 {columns.map((column) => (
                   <TableCell
                     key={column.id}
                     align={column.align || 'left'}
-                    sx={{ 
+                    sx={{
                       minWidth: column.minWidth,
                       whiteSpace: 'nowrap',
                       fontWeight: 600,
@@ -156,24 +143,26 @@ export default function UserActivityLogsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                logs.map((row, index) => {
-                  return (
-                    <TableRow hover role="checkbox" tabIndex={-1} key={row.activity_id || index}>
-                      {columns.map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell 
-                            key={column.id} 
-                            align={column.align || 'left'}
-                            sx={{ whiteSpace: 'nowrap' }}
-                          >
-                            {column.format ? column.format(value, row) : (value !== null && value !== undefined ? String(value) : 'N/A')}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })
+                logs.map((row, index) => (
+                  <TableRow hover role="checkbox" tabIndex={-1} key={row.activity_id || index}>
+                    {columns.map((column) => {
+                      const value = row[column.id];
+                      return (
+                        <TableCell
+                          key={column.id}
+                          align={column.align || 'left'}
+                          sx={{ whiteSpace: 'nowrap' }}
+                        >
+                          {column.format
+                            ? column.format(value, row)
+                            : value !== null && value !== undefined
+                            ? String(value)
+                            : 'N/A'}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
