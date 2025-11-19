@@ -56,6 +56,7 @@ export default async function UserListPage({
 }) {
   
   let initialUsers: any[] = [];
+  let totalCount = 0;
   let initialError: string | null = null;
 
   try {
@@ -70,11 +71,12 @@ export default async function UserListPage({
     
     console.log("data from direct function call", usersData);
     initialUsers = usersData.rows || [];
+    totalCount = usersData.total || 0;
     
   } catch (error) {
     console.error("Error fetching users:", error);
     initialError = error instanceof Error ? error.message : 'Failed to load users';
   }
 
-  return <UserListClient initialUsers={initialUsers} initialError={initialError} />;
+  return <UserListClient initialUsers={initialUsers} totalCount={totalCount} initialError={initialError} />;
 }

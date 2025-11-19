@@ -27,6 +27,8 @@ import {
   FormControl,
   InputLabel,
   CircularProgress,
+  IconButton,
+  InputAdornment,
 } from '@mui/material';
 import { SelectChangeEvent } from '@mui/material/Select';
 import AddIcon from '@mui/icons-material/Add';
@@ -37,7 +39,7 @@ import ToggleOnIcon from '@mui/icons-material/ToggleOn';
 import ToggleOffIcon from '@mui/icons-material/ToggleOff';
 import FileCopyIcon from '@mui/icons-material/FileCopy';
 import DownloadIcon from '@mui/icons-material/Download';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -115,46 +117,181 @@ const columns: readonly Column[] = [
 
 interface UserListClientProps {
   initialUsers: User[];
+  totalCount?: number;
   initialError?: string | null;
 }
 
-export default function UserListClient({ initialUsers, initialError = null }: UserListClientProps) {
+export default function UserListClient({ initialUsers, totalCount = 0, initialError = null }: UserListClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(initialError);
   const [users, setUsers] = useState<User[]>(initialUsers);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [total, setTotal] = useState(totalCount);
+  
+  // Get current params from URL
+  const currentPage = parseInt(searchParams.get('page') || '1');
+  const currentPageSize = parseInt(searchParams.get('pageSize') || '100');
+  const currentSearch = searchParams.get('search') || '';
+  const currentActiveConnections = searchParams.get('active_connections');
+  const currentIsTrial = searchParams.get('is_trial');
+  
+  // Local state for search input (debounced)
+  const [searchInput, setSearchInput] = useState(currentSearch);
 
   useEffect(() => {
     setUsers(initialUsers);
     setError(initialError);
+    setTotal(totalCount);
+    setSearchInput(currentSearch);
+  }, [initialUsers, initialError, totalCount, currentSearch]);
 
-    console.log("initialUsers", initialUsers);
-    console.log("initialError", initialError);
+  // Helper function to update URL search params
+  const updateSearchParams = useCallback((updates: Record<string, string | number | null | undefined>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === '') {
+        params.delete(key);
+      } else {
+        params.set(key, String(value));
+      }
+    });
 
-  
-  }, [initialUsers, initialError]);
+    startTransition(() => {
+      router.push(`/dashboard/user/list?${params.toString()}`);
+    });
+  }, [router, searchParams]);
 
+  const handleChangePage = useCallback((_event: unknown, newPage: number) => {
+    updateSearchParams({ page: newPage + 1 }); // MUI uses 0-based, server uses 1-based
+  }, [updateSearchParams]);
 
-  const handleChangePage = (_event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
+  const handleChangeRowsPerPage = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const newPageSize = +event.target.value;
+    updateSearchParams({ pageSize: newPageSize, page: 1 }); // Reset to page 1 when changing page size
+  }, [updateSearchParams]);
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
-  };
+  const handleSearch = useCallback((searchTerm: string) => {
+    updateSearchParams({ search: searchTerm || null, page: 1 }); // Reset to page 1 when searching
+  }, [updateSearchParams]);
+
+  const handleFilterChange = useCallback((filterName: string, value: string | number | null) => {
+    updateSearchParams({ [filterName]: value, page: 1 }); // Reset to page 1 when filtering
+  }, [updateSearchParams]);
+
+  // Debounced search handler
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== currentSearch) {
+        handleSearch(searchInput);
+      }
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [searchInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5 }}>
-        <Typography variant="h4">Users List</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4">Users List</Typography>
+          {total > 0 && (
+            <Typography variant="body2" color="text.secondary">
+              Total: {total.toLocaleString()} users
+            </Typography>
+          )}
+        </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => router.push('/dashboard/user/new')}>
           Create User
         </Button>
       </Box>
 
+      {/* Search and Filters */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <MuiStack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
+          <TextField
+            label="Search"
+            placeholder="Search by username, password, notes, IP, or ID..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            size="small"
+            sx={{ flexGrow: 1, minWidth: 200 }}
+            InputProps={{
+              endAdornment: searchInput ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      setSearchInput('');
+                      handleSearch('');
+                    }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : undefined,
+            }}
+          />
+          
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Online Status</InputLabel>
+            <Select
+              value={currentActiveConnections || ''}
+              label="Online Status"
+              onChange={(e: SelectChangeEvent) => 
+                handleFilterChange('active_connections', e.target.value || null)
+              }
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="1">Online</MenuItem>
+              <MenuItem value="0">Offline</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Trial Status</InputLabel>
+            <Select
+              value={currentIsTrial || ''}
+              label="Trial Status"
+              onChange={(e: SelectChangeEvent) => 
+                handleFilterChange('is_trial', e.target.value || null)
+              }
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="1">Trial</MenuItem>
+              <MenuItem value="0">Not Trial</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setSearchInput('');
+              updateSearchParams({ 
+                search: null, 
+                active_connections: null, 
+                is_trial: null, 
+                page: 1 
+              });
+            }}
+          >
+            Clear Filters
+          </Button>
+        </MuiStack>
+      </Paper>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      {isPending && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+          <CircularProgress size={24} />
+        </Box>
+      )}
 
       <Paper
         sx={{
@@ -196,6 +333,7 @@ export default function UserListClient({ initialUsers, initialError = null }: Us
                       fontWeight: 600,
                       backgroundColor: 'background.paper',
                       zIndex: 10,
+                      color: 'white',
                     }}
                   >
                     {column.label}
@@ -211,7 +349,7 @@ export default function UserListClient({ initialUsers, initialError = null }: Us
                   </TableCell>
                 </TableRow>
               ) : (
-                users?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)?.map((row) => (
+                users?.map((row) => (
                   <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
                     {columns?.map((column) => {
                       const value = row[column.id];
@@ -235,13 +373,14 @@ export default function UserListClient({ initialUsers, initialError = null }: Us
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[10, 25, 50, 100]}
           component="div"
-          count={users?.length || 0}
-          rowsPerPage={rowsPerPage}
-          page={page}
+          count={total}
+          rowsPerPage={currentPageSize}
+          page={currentPage - 1} // MUI uses 0-based, server uses 1-based
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          disabled={isPending}
           sx={{
             borderTop: '1px solid',
             borderColor: 'divider',
