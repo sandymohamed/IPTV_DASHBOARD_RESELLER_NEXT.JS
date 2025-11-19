@@ -20,43 +20,15 @@
 
 import { redirect } from 'next/navigation';
 import { getServerSession } from '@/lib/auth/auth';
+import { PATH_AFTER_LOGIN } from '@/lib/config';
 
 export default async function DashboardPage() {
-  console.log('🟢 [DASHBOARD] Page rendering...')
-  
-  try {
-    console.log('🟢 [DASHBOARD] Getting server session...')
-    const session = await getServerSession();
+  const session = await getServerSession();
 
-    console.log('🟢 [DASHBOARD] Session check:', {
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      hasAdminid: !!session?.user?.adminid,
-      hasId: !!session?.user?.id,
-      userKeys: session?.user ? Object.keys(session.user) : 'none'
-    })
-
-    if (!session?.user || (!session.user.adminid && !session.user.id)) {
-      console.warn('🟢 [DASHBOARD] ⚠️ No valid session, redirecting to login')
-      redirect('/auth/login');
-    }
-
-    console.log('🟢 [DASHBOARD] ✅ Session valid, rendering dashboard')
-    console.log('🟢 [DASHBOARD] User:', {
-      id: session.user.id,
-      adminid: session.user.adminid,
-      email: session.user.email,
-      name: session.user.name
-    })
-
-    return (
-      <div style={{ padding: '2rem' }}>
-        <h1>Dashboard</h1>
-        <p>Welcome to your dashboard, {session.user.name || session.user.email}! You are authenticated.</p>
-      </div>
-    );
-  } catch (error) {
-    console.error('🟢 [DASHBOARD] ❌ Error:', error);
+  if (!session?.user || (!session.user.adminid && !session.user.id)) {
     redirect('/auth/login');
   }
+
+  // Redirect to the home dashboard page
+  redirect(PATH_AFTER_LOGIN);
 }

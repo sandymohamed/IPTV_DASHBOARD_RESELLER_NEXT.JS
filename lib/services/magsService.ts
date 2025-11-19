@@ -1,4 +1,4 @@
-import axiosInstance from '@/lib/utils/axios';
+import { AxiosInstance } from 'axios';
 
 export interface Mag {
   id: string;
@@ -9,7 +9,10 @@ export interface Mag {
   [key: string]: any;
 }
 
-export const getMags = async (params?: { page?: number; pageSize?: number; searchTerm?: any }): Promise<{ data: Mag[]; total?: number }> => {
+export const getMags = async (
+  axiosInstance: AxiosInstance,
+  params?: { page?: number; pageSize?: number; searchTerm?: any }
+): Promise<{ data: Mag[]; total?: number }> => {
   try {
     const { page = 1, pageSize = 10, searchTerm = {} } = params || {};
     const response = await axiosInstance.post('/mags/page', { page, pageSize, searchTerm });
@@ -23,7 +26,7 @@ export const getMags = async (params?: { page?: number; pageSize?: number; searc
   }
 };
 
-export const getMagById = async (id: string) => {
+export const getMagById = async (axiosInstance: AxiosInstance, id: string) => {
   try {
     const response = await axiosInstance.get(`/mags/${id}`);
     return response.data.result || response.data;
@@ -32,7 +35,7 @@ export const getMagById = async (id: string) => {
   }
 };
 
-export const createMag = async (data: any) => {
+export const createMag = async (axiosInstance: AxiosInstance, data: any) => {
   try {
     const response = await axiosInstance.post('/mags/', data);
     return response.data;
@@ -41,7 +44,7 @@ export const createMag = async (data: any) => {
   }
 };
 
-export const updateMag = async (id: string, data: any) => {
+export const updateMag = async (axiosInstance: AxiosInstance, id: string, data: any) => {
   try {
     const response = await axiosInstance.put(`/mags/${id}`, data);
     return response.data;
@@ -50,7 +53,7 @@ export const updateMag = async (id: string, data: any) => {
   }
 };
 
-export const deleteMag = async (id: string) => {
+export const deleteMag = async (axiosInstance: AxiosInstance, id: string) => {
   try {
     const response = await axiosInstance.delete(`/mags/${id}`);
     return response.data;

@@ -22,8 +22,8 @@ import PeopleIcon from '@mui/icons-material/People';
 import DevicesIcon from '@mui/icons-material/Devices';
 import TvIcon from '@mui/icons-material/Tv';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
-import { logoutAction } from '@/lib/auth/actions';
 import { useDashboardUser } from '@/lib/contexts/DashboardUserContext';
+import { signOut } from 'next-auth/react';
 
 export interface DashboardStats {
   total_lines: number;
@@ -58,12 +58,11 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [isPending, startTransition] = useTransition();
   const handleReAuth = useCallback(() => {
-    const currentPath =
-      typeof window !== 'undefined'
-        ? `${window.location.pathname}${window.location.search}`
-        : '/dashboard/home';
-    startTransition(() => {
-      logoutAction(currentPath);
+    startTransition(async () => {
+      await signOut({ 
+        callbackUrl: '/auth/login',
+        redirect: true 
+      });
     });
   }, [startTransition]);
 
@@ -150,67 +149,163 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
 
   return (
     <Box>
-      <Typography variant="h4" sx={{ mb: 5 }}>
-        Welcome, {user?.admin_name || user?.username || 'User'}
-      </Typography>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" sx={{ mb: 1, fontWeight: 700, background: 'linear-gradient(45deg, #1976d2 30%, #9c27b0 90%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          Welcome back, {user?.adm_username || user?.name || 'User'}! 👋
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Here's an overview of your IPTV dashboard
+        </Typography>
+      </Box>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card 
+            sx={{ 
+              height: '100%',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 6,
+              }
+            }}
+          >
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <PeopleIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6">Total Lines</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box>
+                  <Typography variant="body2" sx={{ opacity: 0.9, mb: 0.5 }}>
+                    Total Lines
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    {stats?.total_lines?.toLocaleString() ?? 0}
+                  </Typography>
+                </Box>
+                <PeopleIcon sx={{ fontSize: 48, opacity: 0.8 }} />
               </Box>
-              <Typography variant="h4">{stats?.total_lines ?? 0}</Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card 
+            sx={{ 
+              height: '100%',
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              color: 'white',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 6,
+              }
+            }}
+          >
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <DevicesIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6">Total Mags</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box>
+                  <Typography variant="body2" sx={{ opacity: 0.9, mb: 0.5 }}>
+                    Total Mags
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    {stats?.total_mags?.toLocaleString() ?? 0}
+                  </Typography>
+                </Box>
+                <DevicesIcon sx={{ fontSize: 48, opacity: 0.8 }} />
               </Box>
-              <Typography variant="h4">{stats?.total_mags ?? 0}</Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card 
+            sx={{ 
+              height: '100%',
+              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              color: 'white',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 6,
+              }
+            }}
+          >
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <TvIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6">Total Enigmas</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box>
+                  <Typography variant="body2" sx={{ opacity: 0.9, mb: 0.5 }}>
+                    Total Enigmas
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    {stats?.total_enigmas?.toLocaleString() ?? 0}
+                  </Typography>
+                </Box>
+                <TvIcon sx={{ fontSize: 48, opacity: 0.8 }} />
               </Box>
-              <Typography variant="h4">{stats?.total_enigmas ?? 0}</Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card 
+            sx={{ 
+              height: '100%',
+              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+              color: 'white',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 6,
+              }
+            }}
+          >
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <AccountTreeIcon sx={{ mr: 1, color: 'success.main' }} />
-                <Typography variant="h6">Online Users</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box>
+                  <Typography variant="body2" sx={{ opacity: 0.9, mb: 0.5 }}>
+                    Online Users
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    {stats?.online_users?.toLocaleString() ?? 0}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+                    {onlinePercentage}% of total
+                  </Typography>
+                </Box>
+                <AccountTreeIcon sx={{ fontSize: 48, opacity: 0.8 }} />
               </Box>
-              <Typography variant="h4">{stats?.online_users ?? 0}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {onlinePercentage}% of total users
-              </Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+      <Paper 
+        sx={{ 
+          width: '100%', 
+          overflow: 'hidden',
+          borderRadius: 2,
+          boxShadow: 2,
+        }}
+      >
+        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            User Statistics Overview
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Detailed breakdown of your user base
+          </Typography>
+        </Box>
         <TableContainer sx={{ maxHeight: 440 }}>
           <Table stickyHeader aria-label="dashboard statistics table">
             <TableHead>
               <TableRow>
                 {columns.map((column) => (
-                  <TableCell key={column.id} align={column.align} style={{ minWidth: column.minWidth }}>
+                  <TableCell 
+                    key={column.id} 
+                    align={column.align} 
+                    style={{ minWidth: column.minWidth }}
+                    sx={{ 
+                      fontWeight: 600,
+                      bgcolor: 'background.default',
+                    }}
+                  >
                     {column.label}
                   </TableCell>
                 ))}
@@ -220,11 +315,41 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
               {tableRows
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => (
-                  <TableRow hover role="checkbox" tabIndex={-1} key={row.name}>
-                    <TableCell>{row.name}</TableCell>
+                  <TableRow 
+                    hover 
+                    role="checkbox" 
+                    tabIndex={-1} 
+                    key={row.name}
+                    sx={{
+                      '&:nth-of-type(odd)': {
+                        bgcolor: 'action.hover',
+                      },
+                    }}
+                  >
+                    <TableCell sx={{ fontWeight: 500 }}>{row.name}</TableCell>
                     <TableCell align="right">{row.total.toLocaleString('en-US')}</TableCell>
-                    <TableCell align="right">{row.online.toLocaleString('en-US')}</TableCell>
-                    <TableCell align="right">{`${row.percentage.toFixed(1)}%`}</TableCell>
+                    <TableCell align="right">
+                      <Typography 
+                        component="span" 
+                        sx={{ 
+                          color: row.online > 0 ? 'success.main' : 'text.secondary',
+                          fontWeight: 600 
+                        }}
+                      >
+                        {row.online.toLocaleString('en-US')}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography 
+                        component="span" 
+                        sx={{ 
+                          color: row.percentage > 50 ? 'success.main' : row.percentage > 25 ? 'warning.main' : 'text.secondary',
+                          fontWeight: 600 
+                        }}
+                      >
+                        {`${row.percentage.toFixed(1)}%`}
+                      </Typography>
+                    </TableCell>
                   </TableRow>
                 ))}
             </TableBody>

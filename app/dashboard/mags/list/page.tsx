@@ -38,6 +38,7 @@ import ToggleOffIcon from '@mui/icons-material/ToggleOff';
 import FileCopyIcon from '@mui/icons-material/FileCopy';
 import DownloadIcon from '@mui/icons-material/Download';
 import { getMags, updateMag, deleteMag, getMagById } from '@/lib/services/magsService';
+import { useApiClient } from '@/lib/hooks/useApiClient';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import * as yup from 'yup';
@@ -85,6 +86,7 @@ const columns: readonly Column[] = [
 
 export default function MagsListPage() {
   const router = useRouter();
+  const apiClient = useApiClient();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mags, setMags] = useState<any[]>([]);
@@ -96,7 +98,7 @@ export default function MagsListPage() {
     const fetchMags = async () => {
       try {
         setLoading(true);
-        const result = await getMags({ page: page + 1, pageSize: rowsPerPage });
+        const result = await getMags(apiClient, { page: page + 1, pageSize: rowsPerPage });
         setMags(result.data || []);
         setTotal(result.total || 0);
       } catch (err: any) {
@@ -107,7 +109,7 @@ export default function MagsListPage() {
     };
 
     fetchMags();
-  }, [page, rowsPerPage]);
+  }, [apiClient, page, rowsPerPage]);
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -246,6 +248,7 @@ export default function MagsListPage() {
 
 function RowActions({ row }: { row: any }) {
   const router = useRouter();
+  const apiClient = useApiClient();
   const [busy, setBusy] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openM3U, setOpenM3U] = useState(false);
@@ -287,7 +290,7 @@ function RowActions({ row }: { row: any }) {
             onClick={async () => {
               try {
                 setBusy(true);
-                await updateMag(String(id), { status: status === 1 ? 0 : 1 });
+                await updateMag(apiClient, String(id), { status: status === 1 ? 0 : 1 });
                 showToast.success(status === 1 ? 'Device disabled successfully' : 'Device enabled successfully');
                 window.location.reload();
               } catch (error: any) {
@@ -342,7 +345,7 @@ function RowActions({ row }: { row: any }) {
         onConfirm={async () => {
           try {
             setBusy(true);
-            await deleteMag(String(id));
+            await deleteMag(apiClient, String(id));
             showToast.success('Device deleted successfully');
             setOpenDelete(false);
             window.location.reload();
@@ -377,6 +380,7 @@ const editMagSchema: yup.ObjectSchema<EditMagForm> = yup
   .required();
 
 function EditMagDialog({ open, onClose, deviceId, onSaved }: { open: boolean; onClose: () => void; deviceId: string | number; onSaved: () => void | Promise<void> }) {
+  const apiClient = useApiClient();
   const [loading, setLoading] = useState(false);
   const [deviceData, setDeviceData] = useState<any>(null);
   const { register, handleSubmit, formState: { isSubmitting }, reset } = useForm<EditMagForm>({
@@ -388,7 +392,7 @@ function EditMagDialog({ open, onClose, deviceId, onSaved }: { open: boolean; on
       const fetchDevice = async () => {
         try {
           setLoading(true);
-          const data = await getMagById(String(deviceId));
+          const data = await getMagById(apiClient, String(deviceId));
           setDeviceData(data);
           reset({
             userName: data?.userName || '',
@@ -409,7 +413,7 @@ function EditMagDialog({ open, onClose, deviceId, onSaved }: { open: boolean; on
   const onSubmit = async (data: EditMagForm) => {
     if (!deviceId) return;
     try {
-      await updateMag(String(deviceId), data);
+      await updateMag(apiClient, String(deviceId), data);
       showToast.success('Device updated successfully');
       await onSaved();
     } catch (error: any) {

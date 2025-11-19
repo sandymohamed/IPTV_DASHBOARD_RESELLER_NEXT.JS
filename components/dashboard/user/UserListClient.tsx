@@ -186,7 +186,7 @@ export default function UserListClient({ initialUsers, initialError = null }: Us
           <Table stickyHeader aria-label="sticky table" sx={{ minWidth: 1200 }}>
             <TableHead>
               <TableRow>
-                {columns.map((column) => (
+                {columns?.map((column) => (
                   <TableCell
                     key={column.id}
                     align={column.align || 'left'}
@@ -211,9 +211,9 @@ export default function UserListClient({ initialUsers, initialError = null }: Us
                   </TableCell>
                 </TableRow>
               ) : (
-                users.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
+                users?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)?.map((row) => (
                   <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
-                    {columns.map((column) => {
+                    {columns?.map((column) => {
                       const value = row[column.id];
                       if (column.id === 'options') {
                         return (
@@ -237,7 +237,7 @@ export default function UserListClient({ initialUsers, initialError = null }: Us
         <TablePagination
           rowsPerPageOptions={[10, 25, 100]}
           component="div"
-          count={users.length}
+          count={users?.length || 0}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

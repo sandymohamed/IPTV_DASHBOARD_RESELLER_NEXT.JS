@@ -1,8 +1,10 @@
+'use client';
+
 import axios from 'axios';
 import { API_BASE_URL } from '@/lib/config';
-import { getToken, setSession } from './auth';
+import { useSession } from 'next-auth/react';
 
-// Create Axios instance
+// Create Axios instance (without interceptors - we'll add them per-request)
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -10,38 +12,59 @@ const axiosInstance = axios.create({
   },
 });
 
-// Request interceptor to add Authorization header
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = getToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+// Client-side axios instance that uses NextAuth session
+// This should be used in client components
+export function createAuthenticatedAxios(apiToken: string | undefined) {
+  const instance = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 
-// Response interceptor to handle errors
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    // If 401 and not already retried, logout and redirect
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      await setSession(null);
-      if (typeof window !== 'undefined') {
-        window.location.href = '/auth/login';
+  // Request interceptor to add Authorization header
+  instance.interceptors.request.use(
+    (config) => {
+      if (apiToken) {
+        config.headers.Authorization = `Bearer ${apiToken}`;
       }
-      return Promise.reject(error);
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+
+  // Response interceptor to handle errors
+  instance.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      const originalRequest = error.config;
+
+      // If 401, redirect to login
+      if (error.response?.status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login';
+        }
+        return Promise.reject(error);
+      }
+
+      return Promise.reject(
+        (error.response && error.response.data) || error.message || 'Something went wrong'
+      );
     }
+  );
 
-    return Promise.reject(
-      (error.response && error.response.data) || error.message || 'Something went wrong'
-    );
-  }
-);
+  return instance;
+}
 
+// Hook to get authenticated axios instance in client components
+export function useAuthenticatedAxios() {
+  const { data: session } = useSession();
+  const apiToken = (session as any)?.apiToken;
+  
+  return createAuthenticatedAxios(apiToken);
+}
+
+// Default export for backward compatibility (but won't have auth token)
+// Server components should use fetchWithAuth instead
 export default axiosInstance;
