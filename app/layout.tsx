@@ -3,16 +3,17 @@ import { SettingsProvider } from '@/lib/contexts/SettingsContext';
 import ThemeProvider from '@/lib/theme';
 import NotificationSetup from '@/components/NotificationSetup';
 import ToastProvider from '@/components/ToastProvider';
+import { AuthProvider } from './auth-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'IPTV Dashboard ssssssssssssss',
+  title: 'IPTV Dashboard',
   description: 'IPTV Reseller Dashboard',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'IPTV Dashboard xxxxxxxxxxxxxxx',
+    title: 'IPTV Dashboard',
   },
 };
 
@@ -31,14 +32,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-
-        <SettingsProvider>
-          <ThemeProvider>
-            <NotificationSetup />
-            <ToastProvider />
-            {children}
-          </ThemeProvider>
-        </SettingsProvider>
+        <AuthProvider>
+          <SettingsProvider>
+            <ThemeProvider>
+              <NotificationSetup />
+              <ToastProvider />
+              {children}
+            </ThemeProvider>
+          </SettingsProvider>
+        </AuthProvider>
       </body>
     </html>
   );

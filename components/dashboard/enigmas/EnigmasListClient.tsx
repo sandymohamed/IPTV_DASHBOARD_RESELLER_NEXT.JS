@@ -43,7 +43,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { User, updateUser, deleteUser, getUserById } from '@/lib/services/userService';
+import { updateEnigma, deleteEnigma, getEnigmaById } from '@/lib/services/enigmasService';
 import { showToast } from '@/lib/utils/toast';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
 
@@ -56,43 +56,37 @@ interface Column {
 }
 
 const columns: readonly Column[] = [
-  { id: 'id', label: 'id', minWidth: 60 },
+  { id: 'id', label: 'ID', minWidth: 60 },
   {
     id: 'active_connections',
-    label: 'Online',
+    label: 'Live',
     minWidth: 80,
     align: 'center',
     format: (value: number) => (
       <Chip size="small" label={value > 0 ? 'Online' : 'Offline'} color={value > 0 ? 'success' : 'default'} />
     ),
   },
-  {
-    id: 'speed_Mbps',
-    label: 'Speed',
-    minWidth: 80,
-    align: 'center',
-    format: (value: number) => (
-      <Chip size="small" label={`${value || 0} Mbps`} color={value > 50 ? 'warning' : 'primary'} />
-    ),
-  },
-  { id: 'userName', label: 'User name', minWidth: 120 },
+  { id: 'owner_name', label: 'Reseller', minWidth: 120 },
+  { id: 'mac', label: 'Mac', minWidth: 120 },
+  { id: 'username', label: 'User Name', minWidth: 120 },
   { id: 'password', label: 'Password', minWidth: 100 },
   {
     id: 'exp_date',
-    label: 'Expired date',
+    label: 'Expire',
     minWidth: 120,
     align: 'center',
-    format: (value: string) => {
+    format: (value: string | number) => {
       if (!value) return 'N/A';
       try {
-        return new Date(value).toLocaleDateString();
+        const date = typeof value === 'number' ? new Date(value) : new Date(value);
+        return date.toLocaleDateString();
       } catch {
         return value;
       }
     },
   },
   {
-    id: 'status',
+    id: 'enabled',
     label: 'Status',
     minWidth: 100,
     align: 'center',
@@ -100,33 +94,32 @@ const columns: readonly Column[] = [
       <Chip size="small" label={value === 1 ? 'Active' : 'Inactive'} color={value === 1 ? 'success' : 'error'} />
     ),
   },
-  { id: 'Notes', label: ' Notes', minWidth: 100 },
-  { id: 'maxConnection', label: 'Conn', minWidth: 80, align: 'center' },
-  { id: 'watching', label: 'Watching', minWidth: 100, align: 'center' },
-  { id: 'IP', label: 'IP', minWidth: 120, align: 'center' },
-  { id: 'owner', label: 'Owner', minWidth: 100, align: 'center' },
+  { id: 'stream_display_name', label: 'Watching', minWidth: 100, align: 'center' },
+  { id: 'user_ip', label: 'IP', minWidth: 120, align: 'center' },
   {
-    id: 'package',
+    id: 'package_name',
     label: 'Package',
     minWidth: 120,
     align: 'center',
     format: (value: any) => <Chip size="small" label={value || 'N/A'} color="secondary" variant="outlined" />,
   },
+  { id: 'reseller_notes', label: 'Notes', minWidth: 100 },
+  { id: 'max_connections', label: 'MaxCon', minWidth: 100, align: 'right' },
   { id: 'options', label: 'Options', minWidth: 140 },
 ];
 
-interface UserListClientProps {
-  initialUsers: User[];
+interface EnigmasListClientProps {
+  initialEnigmas: any[];
   totalCount?: number;
   initialError?: string | null;
 }
 
-export default function UserListClient({ initialUsers, totalCount = 0, initialError = null }: UserListClientProps) {
+export default function EnigmasListClient({ initialEnigmas, totalCount = 0, initialError = null }: EnigmasListClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(initialError);
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [enigmas, setEnigmas] = useState<any[]>(initialEnigmas);
   const [total, setTotal] = useState(totalCount);
   
   // Get current params from URL
@@ -140,11 +133,11 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
   const [searchInput, setSearchInput] = useState(currentSearch);
 
   useEffect(() => {
-    setUsers(initialUsers);
+    setEnigmas(initialEnigmas);
     setError(initialError);
     setTotal(totalCount);
     setSearchInput(currentSearch);
-  }, [initialUsers, initialError, totalCount, currentSearch]);
+  }, [initialEnigmas, initialError, totalCount, currentSearch]);
 
   // Helper function to update URL search params
   const updateSearchParams = useCallback((updates: Record<string, string | number | null | undefined>) => {
@@ -159,7 +152,7 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
     });
 
     startTransition(() => {
-      router.push(`/dashboard/user/list?${params.toString()}`);
+      router.push(`/dashboard/enigmas/list?${params.toString()}`);
     });
   }, [router, searchParams]);
 
@@ -180,8 +173,6 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
     updateSearchParams({ [filterName]: value, page: 1 }); // Reset to page 1 when filtering
   }, [updateSearchParams]);
 
-
-  
   // Debounced search handler
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -197,15 +188,15 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
-          <Typography variant="h4">Users List</Typography>
+          <Typography variant="h4">Enigmas List</Typography>
           {total > 0 && (
             <Typography variant="body2" color="text.secondary">
-              Total: {total.toLocaleString()} users
+              Total: {total.toLocaleString()} enigmas
             </Typography>
           )}
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => router.push('/dashboard/user/new')}>
-          Create User
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => router.push('/dashboard/enigmas/create')}>
+          Create Enigma
         </Button>
       </Box>
 
@@ -322,7 +313,7 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
             },
           }}
         >
-          <Table stickyHeader aria-label="sticky table" sx={{ minWidth: 1200 }}>
+          <Table stickyHeader aria-label="sticky table" sx={{ minWidth: 1300 }}>
             <TableHead>
               <TableRow>
                 {columns?.map((column) => (
@@ -335,7 +326,6 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
                       fontWeight: 600,
                       backgroundColor: 'background.paper',
                       zIndex: 10,
-                      color: 'white',
                     }}
                   >
                     {column.label}
@@ -344,14 +334,14 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
               </TableRow>
             </TableHead>
             <TableBody>
-              {users.length === 0 ? (
+              {enigmas.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={columns.length} align="center" sx={{ py: 3 }}>
                     No data available
                   </TableCell>
                 </TableRow>
               ) : (
-                users?.map((row) => (
+                enigmas?.map((row) => (
                   <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
                     {columns?.map((column) => {
                       const value = row[column.id];
@@ -403,15 +393,15 @@ function RowActions({ row }: { row: any }) {
   const [openEdit, setOpenEdit] = useState(false);
   const [openM3U, setOpenM3U] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
-  const id = row.id || row.ID;
-  const status = row.status;
+  const id = row.id;
+  const status = row.enabled;
   const download = row.download;
 
   return (
     <MuiStack direction="row" spacing={1} alignItems="center">
       <Tooltip title="View">
         <span>
-          <Button variant="text" size="small" onClick={() => router.push(`/dashboard/user/${id}`)} disabled={busy}>
+          <Button variant="text" size="small" onClick={() => router.push(`/dashboard/enigmas/${id}`)} disabled={busy}>
             <VisibilityIcon fontSize="small" />
           </Button>
         </span>
@@ -440,11 +430,11 @@ function RowActions({ row }: { row: any }) {
             onClick={async () => {
               try {
                 setBusy(true);
-                await updateUser(String(id), { status: status === 1 ? 0 : 1 });
-                showToast.success(status === 1 ? 'User disabled successfully' : 'User enabled successfully');
+                await updateEnigma(String(id), { status: status === 1 ? 0 : 1 });
+                showToast.success(status === 1 ? 'Device disabled successfully' : 'Device enabled successfully');
                 router.refresh();
               } catch (error: any) {
-                showToast.error(error?.message || 'Failed to update user status');
+                showToast.error(error?.message || 'Failed to update device status');
               } finally {
                 setBusy(false);
               }
@@ -464,10 +454,10 @@ function RowActions({ row }: { row: any }) {
       </Tooltip>
 
       {openEdit && (
-        <EditUserDialog
+        <EditEnigmaDialog
           open={openEdit}
           onClose={() => setOpenEdit(false)}
-          userId={id}
+          deviceId={id}
           onSaved={async () => {
             setOpenEdit(false);
             router.refresh();
@@ -485,32 +475,32 @@ function RowActions({ row }: { row: any }) {
         onConfirm={async () => {
           try {
             setBusy(true);
-            await deleteUser(String(id));
-            showToast.success('User deleted successfully');
+            await deleteEnigma(String(id));
+            showToast.success('Device deleted successfully');
             setOpenDelete(false);
             router.refresh();
           } catch (error: any) {
-            showToast.error(error?.message || 'Failed to delete user');
+            showToast.error(error?.message || 'Failed to delete device');
             setBusy(false);
           }
         }}
-        title="Delete User"
-        message="Are you sure you want to delete this user? This action cannot be undone and will permanently remove the user and all associated data."
-        itemName={row.userName || `User #${id}`}
+        title="Delete Device"
+        message="Are you sure you want to delete this device? This action cannot be undone and will permanently remove the device and all associated data."
+        itemName={row.username || row.mac || `Device #${id}`}
         loading={busy}
       />
     </MuiStack>
   );
 }
 
-type EditUserForm = {
+type EditEnigmaForm = {
   userName?: string;
   password?: string;
   Notes?: string;
   status?: number;
 };
 
-const editUserSchema: yup.ObjectSchema<EditUserForm> = yup
+const editEnigmaSchema: yup.ObjectSchema<EditEnigmaForm> = yup
   .object({
     userName: yup.string().optional(),
     password: yup.string().optional(),
@@ -519,65 +509,65 @@ const editUserSchema: yup.ObjectSchema<EditUserForm> = yup
   })
   .required();
 
-function EditUserDialog({
+function EditEnigmaDialog({
   open,
   onClose,
-  userId,
+  deviceId,
   onSaved,
 }: {
   open: boolean;
   onClose: () => void;
-  userId: string | number;
+  deviceId: string | number;
   onSaved: () => void | Promise<void>;
 }) {
   const [loading, setLoading] = useState(false);
-  const [userData, setUserData] = useState<any>(null);
+  const [deviceData, setDeviceData] = useState<any>(null);
   const {
     register,
     handleSubmit,
     formState: { isSubmitting },
     reset,
-  } = useForm<EditUserForm>({
-    resolver: yupResolver(editUserSchema),
+  } = useForm<EditEnigmaForm>({
+    resolver: yupResolver(editEnigmaSchema),
   });
 
   useEffect(() => {
-    if (open && userId) {
-      const fetchUser = async () => {
+    if (open && deviceId) {
+      const fetchDevice = async () => {
         try {
           setLoading(true);
-          const data = await getUserById(String(userId));
-          setUserData(data);
+          const data = await getEnigmaById(String(deviceId));
+          setDeviceData(data);
           reset({
-            userName: data?.userName || '',
+            userName: data?.username || '',
             password: '',
-            Notes: data?.Notes || data?.reseller_notes || '',
-            status: data?.status ?? 1,
+            Notes: data?.reseller_notes || '',
+            status: data?.enabled ?? 1,
           });
         } catch (error) {
-          console.error('Failed to fetch user:', error);
+          console.error('Failed to fetch device:', error);
         } finally {
           setLoading(false);
         }
       };
-      fetchUser();
+      fetchDevice();
     }
-  }, [open, userId, reset]);
+  }, [open, deviceId, reset]);
 
-  const onSubmit = async (data: EditUserForm) => {
-    if (!userId) return;
+  const onSubmit = async (data: EditEnigmaForm) => {
+    if (!deviceId) return;
     try {
-      await updateUser(String(userId), data);
-      showToast.success('User updated successfully');
+      await updateEnigma(String(deviceId), data);
+      showToast.success('Device updated successfully');
       await onSaved();
     } catch (error: any) {
-      showToast.error(error?.message || 'Failed to update user');
+      showToast.error(error?.message || 'Failed to update device');
     }
   };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Edit User</DialogTitle>
+      <DialogTitle>Edit Enigma</DialogTitle>
       <DialogContent sx={{ pt: 2 }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
@@ -585,7 +575,7 @@ function EditUserDialog({
           </Box>
         ) : (
           <MuiStack spacing={2}>
-            <TextField label="Username" {...register('userName')} fullWidth defaultValue={userData?.userName || ''} />
+            <TextField label="User Name" {...register('userName')} fullWidth defaultValue={deviceData?.username || ''} />
             <TextField
               label="Password"
               type="password"
@@ -599,11 +589,11 @@ function EditUserDialog({
               fullWidth
               multiline
               rows={3}
-              defaultValue={userData?.Notes || userData?.reseller_notes || ''}
+              defaultValue={deviceData?.reseller_notes || ''}
             />
             <FormControl fullWidth>
               <InputLabel>Status</InputLabel>
-              <Select label="Status" defaultValue={userData?.status ?? 1} {...(register('status') as any)}>
+              <Select label="Status" defaultValue={deviceData?.enabled ?? 1} {...(register('status') as any)}>
                 <MenuItem value={1}>Active</MenuItem>
                 <MenuItem value={0}>Inactive</MenuItem>
               </Select>

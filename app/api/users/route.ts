@@ -2,6 +2,7 @@
 // import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db';
 import { getServerSession } from '@/lib/auth/auth';
+import { downloadlist } from '@/lib/utils/downloadlist';
 
 
 // This runs on the server - has access to your existing logic
@@ -172,13 +173,6 @@ export async function getUsersList(params: {
         const [streaming_servers]: any = await db.query(
             `SELECT * FROM streaming_servers ORDER BY id ASC LIMIT 1`
         )
-
-        // Process download links (copy your existing logic)
-        const downloadlist = [
-            { label: "M3U Playlist", value: "type=m3u" },
-            { label: "Enigma2 Script", value: "type=enigma22_script&output=hls" },
-            // ... your other download types
-        ]
 
         if (streaming_servers && streaming_servers.length > 0) {
             const main_server = streaming_servers[0]
