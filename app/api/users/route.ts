@@ -7,53 +7,53 @@ import { downloadlist } from '@/lib/utils/downloadlist';
 
 // This runs on the server - has access to your existing logic
 export async function getUsersList(params: {
-    page?: number
-    pageSize?: number
-    searchTerm?: string
-    active_connections?: number
-    is_trial?: number
+  page?: number
+  pageSize?: number
+  searchTerm?: string
+  active_connections?: number
+  is_trial?: number
 }) {
-    const {
-        page = 1,
-        pageSize = 10,
-        searchTerm = '',
-        active_connections = null,
-        is_trial = null
-    } = params
+  const {
+    page = 1,
+    pageSize = 10,
+    searchTerm = '',
+    active_connections = null,
+    is_trial = null
+  } = params
 
-    const offset = (page - 1) * pageSize
-    const session = await getServerSession();
+  const offset = (page - 1) * pageSize
+  const session = await getServerSession();
 
-    if (!session?.user) {
-        throw new Error('Not authenticated')
+  if (!session?.user) {
+    throw new Error('Not authenticated')
+  }
+
+  try {
+    let condition = ""
+    if (searchTerm) {
+      condition = `AND (user.username LIKE '%${searchTerm}%' OR user.password LIKE '%${searchTerm}%' OR user.reseller_notes LIKE '%${searchTerm}%' OR user.allowed_ips LIKE '%${searchTerm}%' OR user.id LIKE '%${searchTerm}%')`
     }
 
-    try {
-        let condition = ""
-        if (searchTerm) {
-            condition = `AND (user.username LIKE '%${searchTerm}%' OR user.password LIKE '%${searchTerm}%' OR user.reseller_notes LIKE '%${searchTerm}%' OR user.allowed_ips LIKE '%${searchTerm}%' OR user.id LIKE '%${searchTerm}%')`
-        }
+    if (is_trial !== null) {
+      condition += ` AND (user.is_trial = ${is_trial})`
+    }
 
-        if (is_trial !== null) {
-            condition += ` AND (user.is_trial = ${is_trial})`
-        }
+    let having = ""
 
-        let having = ""
+    if (active_connections !== null) {
+      if (Number(active_connections) === 1) {
+        having += " HAVING `active_connections` > 0"
+      } else {
+        having += " HAVING `active_connections` <= 0"
+      }
+    }
 
-        if (active_connections !== null) {
-            if (Number(active_connections) === 1) {
-                having += " HAVING `active_connections` > 0"
-            } else {
-                having += " HAVING `active_connections` <= 0"
-            }
-        }
+    // Permission check
+    if (session.user.level !== 1) {
+      condition += ` AND (user.created_by = ${session.user.id} OR user.created_by IN (${session.user.resellers || ''}))`
+    }
 
-        // Permission check
-        if (session.user.level !== 1) {
-            condition += ` AND (user.created_by = ${session.user.id} OR user.created_by IN (${session.user.resellers || ''}))`
-        }
-
-        const query = `
+    const query = `
       SELECT
         user.id,
         user.username,
@@ -147,91 +147,82 @@ export async function getUsersList(params: {
       ${having}
       ORDER BY user.id DESC
     `
+    // Get total count
+    const countResult: any = await db.query(`SELECT COUNT(*) AS user_count FROM (${query}) AS subquery`)
 
-        console.log("query from getUsersList", query)
+    // ✅ CORRECT: Access the first element of the array
+    const totalCount = countResult[0]?.user_count
 
-        // Get total count
-        const countResult: any = await db.query(
-            `SELECT COUNT(*) AS user_count FROM (${query}) AS subquery`
-        )
-        console.log("countResult from getUsersList", countResult)
+    // Get paginated data
+    // const [rows]: any = await db.query(query + ` LIMIT ${offset}, ${pageSize}`)
 
-        // ✅ CORRECT: Access the first element of the array
-        const totalCount = countResult[0]?.user_count
-        console.log("countResult", totalCount)
+    const rowsResult: any = await db.query(query + ` LIMIT ${offset}, ${pageSize}`)
+    const rows = rowsResult;
 
-        // Get paginated data
-        // const [rows]: any = await db.query(query + ` LIMIT ${offset}, ${pageSize}`)
 
-        const rowsResult: any = await db.query(query + ` LIMIT ${offset}, ${pageSize}`)
-       console.log("rowsResult from getUsersList", rowsResult)
-        const rows = rowsResult // This is your array of users!
-        console.log("rows from query getUsersList", rows)
-        console.log("Number of users returned:", rows.length)
+    // Get streaming servers for download links
+    const streaming_servers: any = await db.query(`SELECT * FROM streaming_servers ORDER BY id ASC LIMIT 1`)
+    console.log("streaming_servers from getUsersList", streaming_servers)
+    if (streaming_servers && streaming_servers.length > 0) {
+      const main_server = streaming_servers[0]
+      const http_broadcast_port = main_server.http_broadcast_port || 80
 
-        // Get streaming servers for download links
-        const [streaming_servers]: any = await db.query(
-            `SELECT * FROM streaming_servers ORDER BY id ASC LIMIT 1`
-        )
-
-        if (streaming_servers && streaming_servers.length > 0) {
-            const main_server = streaming_servers[0]
-            const http_broadcast_port = main_server.http_broadcast_port || 80
-
-            for (const row of rows) {
-                // Process expiration
-                if (row.exp_date) {
-                    row.is_expired = row.exp_date * 1000 > Date.now() ? 0 : 1
-                    row.exp_date = row.exp_date * 1000
-                } else {
-                    row.is_expired = 0
-                }
-
-                // Process download links
-                const rDNS = main_server.domain_name || main_server.server_ip
-                const downloadfiles = []
-
-                for (const list of downloadlist) {
-                    let rBefore = ""
-                    let rAfter = ""
-
-                    if (list.value === "type=enigma22_script&output=hls" ||
-                        list.value === "type=enigma22_script&output=ts") {
-                        rBefore = "wget -O /etc/enigma2/iptv.sh "
-                        rAfter = "&& chmod 777 /etc/enigma2/iptv.sh && /etc/enigma2/iptv.sh"
-                    }
-
-                    const download =
-                        rBefore +
-                        "http://" +
-                        rDNS +
-                        ":" +
-                        http_broadcast_port +
-                        "/get.php?username=" +
-                        row.username +
-                        "&password=" +
-                        row.password +
-                        "&" +
-                        list.value +
-                        rAfter
-
-                    downloadfiles.push({ label: list.label, download: download })
-                }
-
-                row.download = downloadfiles
-            }
+      for (const row of rows) {
+        // Process expiration
+        if (row.exp_date) {
+          row.is_expired = row.exp_date * 1000 > Date.now() ? 0 : 1
+          row.exp_date = row.exp_date * 1000
+        } else {
+          row.is_expired = 0
         }
 
-        return {
-            rows: rows,
-            total: totalCount,
-            page,
-            pageSize
+        // Process download links
+        const rDNS = main_server.domain_name || main_server.server_ip
+        const downloadfiles = []
+
+        console.log("downloadlist from getUsersList", downloadlist[0])
+        for (const list of downloadlist) {
+          let rBefore = ""
+          let rAfter = ""
+
+          if (list.value === "type=enigma22_script&output=hls" ||
+            list.value === "type=enigma22_script&output=ts") {
+            rBefore = "wget -O /etc/enigma2/iptv.sh "
+            rAfter = "&& chmod 777 /etc/enigma2/iptv.sh && /etc/enigma2/iptv.sh"
+          }
+
+          const download =
+            rBefore +
+            "http://" +
+            rDNS +
+            ":" +
+            http_broadcast_port +
+            "/get.php?username=" +
+            row.username +
+            "&password=" +
+            row.password +
+            "&" +
+            list.value +
+            rAfter
+
+          downloadfiles.push({ label: list.label, download: download })
         }
-    } catch (error) {
-        console.error('Error fetching users:', error)
-        throw error
+
+        row.download = downloadfiles
+        console.log("download from getUsersList", row.download)
+      }
     }
+
+    return {
+      rows: rows,
+      total: totalCount,
+      page,
+      pageSize
+    }
+  } catch (error) {
+    console.error('Error fetching users:', error)
+    throw error
+  }
 }
 
 

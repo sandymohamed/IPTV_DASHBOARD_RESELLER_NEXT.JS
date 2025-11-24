@@ -1,13 +1,14 @@
 'use client';
 
-import { useMemo, useTransition, useState, useEffect, useCallback, type ReactNode } from 'react';
+import * as React from 'react';
+import { useCallback, useMemo, useState, useTransition, useEffect } from 'react';
 import {
-  Alert,
   Box,
-  Button,
+  Typography,
   CircularProgress,
+  Alert,
+  Button,
   Paper,
-  Stack,
   Table,
   TableBody,
   TableCell,
@@ -15,75 +16,68 @@ import {
   TableHead,
   TablePagination,
   TableRow,
-  Typography,
   TextField,
   IconButton,
   InputAdornment,
+  Stack,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
-import {
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-interface CodesListClientProps {
+interface Column {
+  id: string;
+  label: string;
+  minWidth?: number;
+  align?: 'right' | 'left' | 'center';
+  format?: (value: any, row?: any) => string | React.ReactNode;
+}
+
+const columns: readonly Column[] = [
+  { id: 'trans_id', label: 'ID', minWidth: 60 },
+  { id: 'type', label: 'Type', minWidth: 100, format: (value: number) => {
+    const types: { [key: number]: string } = {
+      1: 'Topup',
+      2: 'Credit',
+      3: 'Bonus',
+      4: 'Transfer'
+    };
+    return types[value] || String(value);
+  }},
+  { id: 'admin', label: 'Reseller', minWidth: 150, format: (value: any, row: any) => {
+    return row.admin_name || value || 'N/A';
+  }},
+  { id: 'credit', label: 'Credit', minWidth: 120, align: 'right', format: (value: number) => {
+    const amount = typeof value === 'number' ? value : parseFloat(String(value || 0));
+    return `$${isNaN(amount) ? '0.00' : amount.toFixed(2)}`;
+  }},
+  { id: 'depit', label: 'Debit', minWidth: 120, align: 'right', format: (value: number) => {
+    const amount = typeof value === 'number' ? value : parseFloat(String(value || 0));
+    return `$${isNaN(amount) ? '0.00' : amount.toFixed(2)}`;
+  }},
+  { id: 'dateadded', label: 'Date', minWidth: 150, align: 'center', format: (value: string) => {
+    if (!value) return 'N/A';
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return value;
+    }
+  }},
+  { id: 'Notes', label: 'Notes', minWidth: 200 },
+];
+
+interface PaymentsListClientProps {
   initialData: any[];
   totalCount?: number;
   initialError?: string | null;
 }
 
-type Column = {
-  id: string;
-  label: string;
-  minWidth?: number;
-  align?: 'right' | 'left' | 'center';
-  format?: (value: any, row?: Record<string, any>) => ReactNode;
-};
-
-const DEFAULT_PAGE_SIZE = 10;
-
-const columns: readonly Column[] = [
-  { id: 'trans_id', label: 'ID', minWidth: 60 },
-  { id: 'admin_name', label: 'Reseller', minWidth: 120 },
-  { id: 'trans_name', label: 'Transaction Name', minWidth: 150 },
-  { id: 'totCodes', label: 'Total Codes', minWidth: 100, align: 'center', format: (value: number) => (
-    <Typography variant="body2" fontWeight={600}>{value || 0}</Typography>
-  )},
-  { id: 'totAct', label: 'Active Codes', minWidth: 100, align: 'center', format: (value: number) => (
-    <Typography variant="body2" color="success.main" fontWeight={600}>{value || 0}</Typography>
-  )},
-  {
-    id: 'trans_date',
-    label: 'Transaction Date',
-    minWidth: 150,
-    align: 'center',
-    format: (value: string | number) => formatDate(value),
-  },
-  { id: 'options', label: 'Options', minWidth: 100 },
-];
-
-function formatDate(value: string | number) {
-  if (!value) return 'N/A';
-  try {
-    // Handle Unix timestamp (seconds)
-    if (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) {
-      const timestamp = typeof value === 'string' ? parseInt(value) : value;
-      // If timestamp is in seconds (less than year 2000 in milliseconds), convert to milliseconds
-      if (timestamp < 946684800000) {
-        return new Date(timestamp * 1000).toLocaleDateString();
-      }
-      return new Date(timestamp).toLocaleDateString();
-    }
-    return new Date(value).toLocaleDateString();
-  } catch (error) {
-    return String(value);
-  }
-}
-
-export default function CodesListClient({ initialData, totalCount = 0, initialError = null }: CodesListClientProps) {
+export default function PaymentsListClient({ initialData, totalCount = 0, initialError = null }: PaymentsListClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -94,27 +88,24 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
 
   // Get current params from URL
   const currentPage = parseInt(searchParams.get('page') || '1');
-  const currentPageSize = parseInt(searchParams.get('pageSize') || '10');
-  const currentNameSearch = searchParams.get('name') || '';
-  const currentAdminSearch = searchParams.get('admin') || '';
-  const currentDate1 = searchParams.get('date1') || '';
-  const currentDate2 = searchParams.get('date2') || '';
+  const currentPageSize = parseInt(searchParams.get('pageSize') || '100');
+  const currentSearchTxt = searchParams.get('search_txt') || '';
+  const currentAdmin = searchParams.get('admin') || '';
+  const currentType = searchParams.get('type') || '2';
 
   // Local state for search inputs (debounced)
-  const [nameSearch, setNameSearch] = useState(currentNameSearch);
-  const [adminSearch, setAdminSearch] = useState(currentAdminSearch);
-  const [date1Search, setDate1Search] = useState(currentDate1);
-  const [date2Search, setDate2Search] = useState(currentDate2);
+  const [searchTxt, setSearchTxt] = useState(currentSearchTxt);
+  const [admin, setAdmin] = useState(currentAdmin);
+  const [type, setType] = useState(currentType);
 
   useEffect(() => {
     setTableData(initialData);
     setError(initialError);
     setTotal(totalCount);
-    setNameSearch(currentNameSearch);
-    setAdminSearch(currentAdminSearch);
-    setDate1Search(currentDate1);
-    setDate2Search(currentDate2);
-  }, [initialData, initialError, totalCount, currentNameSearch, currentAdminSearch, currentDate1, currentDate2]);
+    setSearchTxt(currentSearchTxt);
+    setAdmin(currentAdmin);
+    setType(currentType);
+  }, [initialData, initialError, totalCount, currentSearchTxt, currentAdmin, currentType]);
 
   // Helper function to update URL search params
   const updateSearchParams = useCallback((updates: Record<string, string | number | null | undefined>) => {
@@ -129,7 +120,7 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
     });
 
     startTransition(() => {
-      router.push(`/dashboard/codes/list?${params.toString()}`);
+      router.push(`/dashboard/payments/list?${params.toString()}`);
     });
   }, [router, searchParams]);
 
@@ -142,71 +133,57 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
     updateSearchParams({ pageSize: newPageSize, page: 1 }); // Reset to page 1 when changing page size
   }, [updateSearchParams]);
 
-  const handleSearch = useCallback((field: 'name' | 'admin' | 'date1' | 'date2', searchTerm: string) => {
+  const handleSearch = useCallback((field: 'search_txt' | 'admin' | 'type', searchTerm: string | number) => {
     updateSearchParams({ [field]: searchTerm || null, page: 1 }); // Reset to page 1 when searching
   }, [updateSearchParams]);
 
   // Debounced search handlers
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (nameSearch !== currentNameSearch) {
-        handleSearch('name', nameSearch);
+      if (searchTxt !== currentSearchTxt) {
+        handleSearch('search_txt', searchTxt);
       }
     }, 500); // Wait 500ms after user stops typing
 
     return () => clearTimeout(timer);
-  }, [nameSearch]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchTxt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (adminSearch !== currentAdminSearch) {
-        handleSearch('admin', adminSearch);
+      if (admin !== currentAdmin) {
+        handleSearch('admin', admin);
       }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [adminSearch]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [admin]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Type change is immediate (not debounced)
   useEffect(() => {
-    if (date1Search !== currentDate1 || date2Search !== currentDate2) {
-      const timer = setTimeout(() => {
-        updateSearchParams({ 
-          date1: date1Search || null, 
-          date2: date2Search || null, 
-          page: 1 
-        });
-      }, 500);
-      return () => clearTimeout(timer);
+    if (type !== currentType) {
+      handleSearch('type', type);
     }
-  }, [date1Search, date2Search]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const tableRows = useMemo(() => tableData ?? [], [tableData]);
+  }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Box>
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        mb={5}
-        spacing={2}
-      >
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5 }}>
         <Box>
-          <Typography variant="h4">Codes List</Typography>
+          <Typography variant="h4">Payments List</Typography>
           {total > 0 && (
             <Typography variant="body2" color="text.secondary">
-              Total: {total.toLocaleString()} codes
+              Total: {total.toLocaleString()} payments
             </Typography>
           )}
         </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => router.push('/dashboard/codes/add-code')}
+          onClick={() => router.push('/dashboard/payments/add-payment')}
         >
-          Create Code
+          Add Payment
         </Button>
-      </Stack>
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -220,9 +197,9 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
               fullWidth
-              placeholder="Search by transaction name..."
-              value={nameSearch}
-              onChange={(e) => setNameSearch(e.target.value)}
+              placeholder="Search by transaction ID or notes..."
+              value={searchTxt}
+              onChange={(e) => setSearchTxt(e.target.value)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -231,14 +208,14 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
                     </IconButton>
                   </InputAdornment>
                 ),
-                endAdornment: nameSearch && (
+                endAdornment: searchTxt && (
                   <InputAdornment position="end">
                     <IconButton
                       edge="end"
                       size="small"
                       onClick={() => {
-                        setNameSearch('');
-                        handleSearch('name', '');
+                        setSearchTxt('');
+                        handleSearch('search_txt', '');
                       }}
                     >
                       <ClearIcon />
@@ -250,8 +227,8 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
             <TextField
               fullWidth
               placeholder="Admin ID..."
-              value={adminSearch}
-              onChange={(e) => setAdminSearch(e.target.value)}
+              value={admin}
+              onChange={(e) => setAdmin(e.target.value)}
               type="number"
               InputProps={{
                 startAdornment: (
@@ -261,13 +238,13 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
                     </IconButton>
                   </InputAdornment>
                 ),
-                endAdornment: adminSearch && (
+                endAdornment: admin && (
                   <InputAdornment position="end">
                     <IconButton
                       edge="end"
                       size="small"
                       onClick={() => {
-                        setAdminSearch('');
+                        setAdmin('');
                         handleSearch('admin', '');
                       }}
                     >
@@ -277,28 +254,19 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
                 ),
               }}
             />
-          </Stack>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField
-              fullWidth
-              label="Date From"
-              type="date"
-              value={date1Search}
-              onChange={(e) => setDate1Search(e.target.value)}
-              InputLabelProps={{
-                shrink: true,
-              }}
-            />
-            <TextField
-              fullWidth
-              label="Date To"
-              type="date"
-              value={date2Search}
-              onChange={(e) => setDate2Search(e.target.value)}
-              InputLabelProps={{
-                shrink: true,
-              }}
-            />
+            <FormControl fullWidth>
+              <InputLabel>Type</InputLabel>
+              <Select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                label="Type"
+              >
+                <MenuItem value="1">Topup</MenuItem>
+                <MenuItem value="2">Credit</MenuItem>
+                <MenuItem value="3">Bonus</MenuItem>
+                <MenuItem value="4">Transfer</MenuItem>
+              </Select>
+            </FormControl>
           </Stack>
         </Stack>
       </Paper>
@@ -309,41 +277,28 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          position: 'relative',
+          maxHeight: 'calc(100vh - 200px)',
         }}
       >
-        {isPending && (
-          <Box
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              bgcolor: 'rgba(255,255,255,0.6)',
-              zIndex: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <CircularProgress size={32} />
-          </Box>
-        )}
-
         <TableContainer
           sx={{
             maxHeight: 'calc(100vh - 300px)',
             overflowX: 'auto',
             overflowY: 'auto',
             '&::-webkit-scrollbar': {
-              height: 8,
-              width: 8,
+              height: '8px',
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: 'transparent',
             },
             '&::-webkit-scrollbar-thumb': {
               background: 'rgba(0,0,0,0.2)',
-              borderRadius: 4,
+              borderRadius: '4px',
             },
           }}
         >
-          <Table stickyHeader aria-label="codes transactions table" sx={{ minWidth: 650 }}>
+          <Table stickyHeader aria-label="payments table" sx={{ minWidth: 800 }}>
             <TableHead>
               <TableRow>
                 {columns.map((column) => (
@@ -355,6 +310,7 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
                       whiteSpace: 'nowrap',
                       fontWeight: 600,
                       backgroundColor: 'background.paper',
+                      zIndex: 10,
                     }}
                   >
                     {column.label}
@@ -363,39 +319,24 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
               </TableRow>
             </TableHead>
             <TableBody>
-              {tableRows.length === 0 ? (
+              {tableData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={columns.length} align="center" sx={{ py: 3 }}>
                     No data available
                   </TableCell>
                 </TableRow>
               ) : (
-                tableRows.map((row, index) => (
-                  <TableRow
-                    hover
-                    tabIndex={-1}
-                    key={row.trans_id ?? row.id ?? `row-${index}`}
-                  >
+                tableData.map((row) => (
+                  <TableRow hover role="checkbox" tabIndex={-1} key={row.trans_id || row.id}>
                     {columns.map((column) => {
                       const value = row[column.id];
-                      if (column.id === 'options') {
-                        return (
-                          <TableCell key={column.id} align={column.align || 'left'} sx={{ whiteSpace: 'nowrap' }}>
-                            {/* Options can be added here */}
-                          </TableCell>
-                        );
-                      }
                       return (
                         <TableCell
                           key={column.id}
                           align={column.align || 'left'}
                           sx={{ whiteSpace: 'nowrap' }}
                         >
-                          {column.format
-                            ? column.format(value, row)
-                            : value !== null && value !== undefined
-                            ? String(value)
-                            : 'N/A'}
+                          {column.format ? column.format(value, row) : (value !== null && value !== undefined ? String(value) : 'N/A')}
                         </TableCell>
                       );
                     })}
@@ -406,7 +347,7 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[10, 25, 100, 500]}
           component="div"
           count={total}
           rowsPerPage={currentPageSize}
@@ -427,3 +368,4 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
     </Box>
   );
 }
+

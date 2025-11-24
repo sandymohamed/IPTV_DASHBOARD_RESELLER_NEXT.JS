@@ -1,16 +1,16 @@
-import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
+// import { redirect } from 'next/navigation';
+// import { cookies } from 'next/headers';
 
 import UserCreateForm from '@/components/dashboard/user/UserCreateForm';
 
 
 export default async function UserCreatePage() {
-  const cookieStore = cookies();
-  const token = cookieStore.get('token')?.value;
+  // const cookieStore = cookies();
+  // const token = cookieStore.get('token')?.value;
 
-  if (!token) {
-    redirect('/auth/login');
-  }
+  // if (!token) {
+  //   redirect('/auth/login');
+  // }
 
   let packages: any[] = [];
 

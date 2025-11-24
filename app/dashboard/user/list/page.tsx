@@ -31,7 +31,7 @@ export default async function UserListPage({
     totalCount = usersData.total || 0;
     
   } catch (error) {
-    console.error("Error fetching users:", error);
+    console.error( "Error fetching users:", error);
     initialError = error instanceof Error ? error.message : 'Failed to load users';
   }
 

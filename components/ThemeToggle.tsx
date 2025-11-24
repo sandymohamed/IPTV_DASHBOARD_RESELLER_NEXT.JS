@@ -22,12 +22,13 @@ export default function ThemeToggle() {
       <IconButton
         onClick={onToggleMode}
         sx={{
-          bgcolor: baseBg,
-          color: isLight ? theme.palette.primary.dark : theme.palette.common.white,
-          border: `1px solid ${borderColor}`,
+          bgcolor: isLight ? 'rgba(251, 191, 36, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+          color: isLight ? '#f59e0b' : '#a855f7',
+          border: `1px solid ${isLight ? 'rgba(251, 191, 36, 0.3)' : 'rgba(139, 92, 246, 0.3)'}`,
           boxShadow: theme.shadows.z8,
           '&:hover': {
-            bgcolor: hoverBg,
+            bgcolor: isLight ? 'rgba(251, 191, 36, 0.2)' : 'rgba(139, 92, 246, 0.2)',
+            color: isLight ? '#d97706' : '#9333ea',
           },
         }}
       >

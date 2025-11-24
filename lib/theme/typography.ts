@@ -16,7 +16,7 @@ function responsiveFontSizes({ sm, md, lg }: { sm: number; md: number; lg: numbe
   };
 }
 
-const FONT_PRIMARY = 'Roboto, sans-serif';
+const FONT_PRIMARY = 'Segoe UI, sans-serif';
 
 const typography = {
   fontFamily: FONT_PRIMARY,

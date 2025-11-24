@@ -1,220 +1,41 @@
-'use client';
+export const dynamic = 'force-dynamic';
+import { getAllTransactions } from '@/app/api/payments/route';
+import PaymentsListClient from '@/components/dashboard/payments/PaymentsListClient';
 
-import * as React from 'react';
-import { useEffect, useState } from 'react';
-import {
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-  Button,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import { getPayments } from '@/lib/services/paymentsService';
-import { useRouter } from 'next/navigation';
+export default async function PaymentsListPage({ searchParams }: {
+  searchParams: { [key: string]: string | string[] | undefined }
+}) {
+  let initialData: any[] = [];
+  let totalCount = 0;
+  let initialError: string | null = null;
 
-interface Column {
-  id: string;
-  label: string;
-  minWidth?: number;
-  align?: 'right' | 'left' | 'center';
-  format?: (value: any, row?: any) => string | React.ReactNode;
-}
-
-const columns: readonly Column[] = [
-  { id: 'id', label: 'id', minWidth: 60 },
-  { id: 'type', label: 'Type', minWidth: 100, format: (value: number) => {
-    const types: { [key: number]: string } = {
-      1: 'Topup',
-      2: 'Credit',
-      3: 'Bonus',
-      4: 'Transfer'
-    };
-    return types[value] || String(value);
-  }},
-  { id: 'admin', label: 'Reseller', minWidth: 150, format: (value: any, row: any) => {
-    return row.admin_name || value || 'N/A';
-  }},
-  { id: 'amount', label: 'Amount', minWidth: 120, align: 'right', format: (value: number) => {
-    const amount = typeof value === 'number' ? value : parseFloat(value);
-    return `$${isNaN(amount) ? '0.00' : amount.toFixed(2)}`;
-  }},
-  { id: 'dateadded', label: 'Date', minWidth: 150, align: 'center', format: (value: string) => {
-    if (!value) return 'N/A';
-    try {
-      return new Date(value).toLocaleDateString();
-    } catch {
-      return value;
+  try {
+    // Parse search term from URL params
+    const searchTerm: { search_txt?: string; admin?: number; type?: number } = {};
+    if (searchParams.search_txt) {
+      searchTerm.search_txt = searchParams.search_txt as string;
     }
-  }},
-  { id: 'Notes', label: ' Notes', minWidth: 200 },
-];
+    if (searchParams.admin) {
+      searchTerm.admin = parseInt(searchParams.admin as string);
+    }
+    if (searchParams.type) {
+      searchTerm.type = parseInt(searchParams.type as string);
+    }
 
-export default function PaymentsListPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [payments, setPayments] = useState<any[]>([]);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [total, setTotal] = useState(0);
+    const data = await getAllTransactions({
+      page: parseInt(searchParams.page as string || '1'),
+      pageSize: parseInt(searchParams.pageSize as string || '100'),
+      searchTerm: Object.keys(searchTerm).length > 0 ? searchTerm : undefined,
+    });
 
-  useEffect(() => {
-    const fetchPayments = async () => {
-      try {
-        setLoading(true);
-        const result = await getPayments({ page: page + 1, pageSize: rowsPerPage });
-        setPayments(result.data || []);
-        setTotal(result.total || 0);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load payments');
-      } finally {
-        setLoading(false);
-      }
-    };
+    // console.log("data from direct function call", data);
+    initialData = data.result || [];
+    totalCount = data.totalLength || 0;
 
-    fetchPayments();
-  }, [page, rowsPerPage]);
-
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
-  };
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+  } catch (error) {
+    console.error("Error fetching Payments:", error);
+    initialError = error instanceof Error ? error.message : 'Failed to load Payments';
   }
 
-  return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5 }}>
-        <Typography variant="h4">Payments List</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => router.push('/dashboard/payments/add-payment')}
-        >
-          Add Payment
-        </Button>
-      </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Paper 
-        sx={{ 
-          width: '100%', 
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          maxHeight: 'calc(100vh - 200px)',
-        }}
-      >
-        <TableContainer 
-          sx={{ 
-            maxHeight: 'calc(100vh - 300px)',
-            overflowX: 'auto',
-            overflowY: 'auto',
-            '&::-webkit-scrollbar': {
-              height: '8px',
-              width: '8px',
-            },
-            '&::-webkit-scrollbar-track': {
-              background: 'transparent',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              background: 'rgba(0,0,0,0.2)',
-              borderRadius: '4px',
-            },
-          }}
-        >
-          <Table stickyHeader aria-label="sticky table" sx={{ minWidth: 800 }}>
-            <TableHead>
-              <TableRow>
-                {columns.map((column) => (
-                  <TableCell
-                    key={column.id}
-                    align={column.align || 'left'}
-                    sx={{ 
-                      minWidth: column.minWidth,
-                      whiteSpace: 'nowrap',
-                      fontWeight: 600,
-                      backgroundColor: 'background.paper',
-                      zIndex: 10,
-                    }}
-                  >
-                    {column.label}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {payments.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={columns.length} align="center" sx={{ py: 3 }}>
-                    No data available
-                  </TableCell>
-                </TableRow>
-              ) : (
-                payments.map((row) => {
-                    return (
-                      <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
-                        {columns.map((column) => {
-                          const value = row[column.id];
-                          return (
-                            <TableCell 
-                              key={column.id} 
-                              align={column.align || 'left'}
-                              sx={{ whiteSpace: 'nowrap' }}
-                            >
-                              {column.format ? column.format(value, row) : (value !== null && value !== undefined ? String(value) : 'N/A')}
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    );
-                  })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-          <TablePagination
-            rowsPerPageOptions={[10, 25, 100]}
-            component="div"
-            count={total}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-          sx={{
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            position: 'sticky',
-            bottom: 0,
-            backgroundColor: 'background.paper',
-            zIndex: 5,
-          }}
-        />
-      </Paper>
-    </Box>
-  );
+  return <PaymentsListClient initialData={initialData} totalCount={totalCount} initialError={initialError} />;
 }

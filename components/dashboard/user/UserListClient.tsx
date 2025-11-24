@@ -46,6 +46,8 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { User, updateUser, deleteUser, getUserById } from '@/lib/services/userService';
 import { showToast } from '@/lib/utils/toast';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
+import ElapsedTimeCounter from './ElapsedTimeCounter';
+import { useSpliceLongText } from '@/components/hooks/useSpliceLongText';
 
 interface Column {
   id: string;
@@ -75,7 +77,7 @@ const columns: readonly Column[] = [
       <Chip size="small" label={`${value || 0} Mbps`} color={value > 50 ? 'warning' : 'primary'} />
     ),
   },
-  { id: 'userName', label: 'User name', minWidth: 120 },
+  { id: 'username', label: 'User name', minWidth: 120 },
   { id: 'password', label: 'Password', minWidth: 100 },
   {
     id: 'exp_date',
@@ -85,7 +87,7 @@ const columns: readonly Column[] = [
     format: (value: string) => {
       if (!value) return 'N/A';
       try {
-        return new Date(value).toLocaleDateString();
+        return new Date(Number(value) * 1000).toLocaleDateString();
       } catch {
         return value;
       }
@@ -100,18 +102,41 @@ const columns: readonly Column[] = [
       <Chip size="small" label={value === 1 ? 'Active' : 'Inactive'} color={value === 1 ? 'success' : 'error'} />
     ),
   },
-  { id: 'Notes', label: ' Notes', minWidth: 100 },
-  { id: 'maxConnection', label: 'Conn', minWidth: 80, align: 'center' },
-  { id: 'watching', label: 'Watching', minWidth: 100, align: 'center' },
-  { id: 'IP', label: 'IP', minWidth: 120, align: 'center' },
-  { id: 'owner', label: 'Owner', minWidth: 100, align: 'center' },
   {
-    id: 'package',
+    id: 'max_connections',
+    label: 'Conn',
+    align: 'center',
+    format: (value: number, row: any) => (
+      <Chip size="small" label={`${row.active_connections} / ${row.max_connections}`} color="primary" variant="outlined" />
+    ),
+  },
+
+
+  {
+    id: 'watching',
+    label: 'Watching',
+    align: 'center',
+    format: (value: any, row: any) => (
+      <Typography variant="body2" color="text.secondary">
+        {row.stream_display_name}
+        {row.date_start && (
+          <ElapsedTimeCounter dateStart={row.date_start} />
+        )}
+      </Typography>
+    )
+  },
+
+  { id: 'user_ip', label: 'IP', align: 'center' },
+  { id: 'owner_name', label: 'Owner', align: 'center' },
+  {
+    id: 'package_name',
     label: 'Package',
     minWidth: 120,
     align: 'center',
     format: (value: any) => <Chip size="small" label={value || 'N/A'} color="secondary" variant="outlined" />,
   },
+  { id: 'reseller_notes', label: ' Notes', minWidth: 100, format: (value: string) => useSpliceLongText(value, 20) },
+
   { id: 'options', label: 'Options', minWidth: 140 },
 ];
 
@@ -128,14 +153,14 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
   const [error, setError] = useState<string | null>(initialError);
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [total, setTotal] = useState(totalCount);
-  
+
   // Get current params from URL
   const currentPage = parseInt(searchParams.get('page') || '1');
   const currentPageSize = parseInt(searchParams.get('pageSize') || '100');
   const currentSearch = searchParams.get('search') || '';
   const currentActiveConnections = searchParams.get('active_connections');
   const currentIsTrial = searchParams.get('is_trial');
-  
+
   // Local state for search input (debounced)
   const [searchInput, setSearchInput] = useState(currentSearch);
 
@@ -149,7 +174,7 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
   // Helper function to update URL search params
   const updateSearchParams = useCallback((updates: Record<string, string | number | null | undefined>) => {
     const params = new URLSearchParams(searchParams.toString());
-    
+
     Object.entries(updates).forEach(([key, value]) => {
       if (value === null || value === undefined || value === '') {
         params.delete(key);
@@ -181,7 +206,7 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
   }, [updateSearchParams]);
 
 
-  
+
   // Debounced search handler
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -235,13 +260,13 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
               ) : undefined,
             }}
           />
-          
+
           <FormControl size="small" sx={{ minWidth: 150 }}>
             <InputLabel>Online Status</InputLabel>
             <Select
               value={currentActiveConnections || ''}
               label="Online Status"
-              onChange={(e: SelectChangeEvent) => 
+              onChange={(e: SelectChangeEvent) =>
                 handleFilterChange('active_connections', e.target.value || null)
               }
             >
@@ -256,7 +281,7 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
             <Select
               value={currentIsTrial || ''}
               label="Trial Status"
-              onChange={(e: SelectChangeEvent) => 
+              onChange={(e: SelectChangeEvent) =>
                 handleFilterChange('is_trial', e.target.value || null)
               }
             >
@@ -270,11 +295,11 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
             variant="outlined"
             onClick={() => {
               setSearchInput('');
-              updateSearchParams({ 
-                search: null, 
-                active_connections: null, 
-                is_trial: null, 
-                page: 1 
+              updateSearchParams({
+                search: null,
+                active_connections: null,
+                is_trial: null,
+                page: 1
               });
             }}
           >
@@ -301,12 +326,12 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: 'calc(100vh - 200px)',
+          maxHeight: 'calc(100vh - 20px)',
         }}
       >
         <TableContainer
           sx={{
-            maxHeight: 'calc(100vh - 300px)',
+            maxHeight: 'calc(100vh - 330px)',
             overflowX: 'auto',
             overflowY: 'auto',
             '&::-webkit-scrollbar': {
@@ -496,7 +521,7 @@ function RowActions({ row }: { row: any }) {
         }}
         title="Delete User"
         message="Are you sure you want to delete this user? This action cannot be undone and will permanently remove the user and all associated data."
-        itemName={row.userName || `User #${id}`}
+        itemName={row.username || `User #${id}`}
         loading={busy}
       />
     </MuiStack>
@@ -504,17 +529,17 @@ function RowActions({ row }: { row: any }) {
 }
 
 type EditUserForm = {
-  userName?: string;
+  username?: string;
   password?: string;
-  Notes?: string;
+  reseller_notes?: string;
   status?: number;
 };
 
 const editUserSchema: yup.ObjectSchema<EditUserForm> = yup
   .object({
-    userName: yup.string().optional(),
+    username: yup.string().optional(),
     password: yup.string().optional(),
-    Notes: yup.string().optional(),
+    reseller_notes: yup.string().optional(),
     status: yup.number().oneOf([0, 1]).optional(),
   })
   .required();
@@ -549,9 +574,9 @@ function EditUserDialog({
           const data = await getUserById(String(userId));
           setUserData(data);
           reset({
-            userName: data?.userName || '',
+            username: data?.username || '',
             password: '',
-            Notes: data?.Notes || data?.reseller_notes || '',
+            reseller_notes: data?.notes || data?.reseller_notes || '',
             status: data?.status ?? 1,
           });
         } catch (error) {
@@ -585,7 +610,7 @@ function EditUserDialog({
           </Box>
         ) : (
           <MuiStack spacing={2}>
-            <TextField label="Username" {...register('userName')} fullWidth defaultValue={userData?.userName || ''} />
+            <TextField label="username" {...register('username')} fullWidth defaultValue={userData?.username || ''} />
             <TextField
               label="Password"
               type="password"
@@ -595,11 +620,11 @@ function EditUserDialog({
             />
             <TextField
               label="Notes"
-              {...register('Notes')}
+              {...register('reseller_notes')}
               fullWidth
               multiline
               rows={3}
-              defaultValue={userData?.Notes || userData?.reseller_notes || ''}
+              defaultValue={userData?.reseller_notes || userData?.notes || ''}
             />
             <FormControl fullWidth>
               <InputLabel>Status</InputLabel>

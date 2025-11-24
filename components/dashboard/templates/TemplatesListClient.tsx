@@ -31,6 +31,8 @@ import {
   InputAdornment,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { EditNotifications } from '@mui/icons-material';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -167,6 +169,40 @@ export default function TemplatesListClient({ initialData, totalCount = 0, initi
           {error}
         </Alert>
       )}
+
+      {/* Search Bar */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <TextField
+          fullWidth
+          placeholder="Search templates by title..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <IconButton edge="start" size="small">
+                  <SearchIcon />
+                </IconButton>
+              </InputAdornment>
+            ),
+            endAdornment: searchInput && (
+              <InputAdornment position="end">
+                <IconButton
+                  edge="end"
+                  size="small"
+                  onClick={() => {
+                    setSearchInput('');
+                    handleSearch('');
+                  }}
+                >
+                  <ClearIcon />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+          sx={{ mb: 0 }}
+        />
+      </Paper>
 
       <Paper
         sx={{

@@ -22,7 +22,7 @@ export default async function EnigmasListPage({
       is_trial: searchParams.is_trial ? parseInt(searchParams.is_trial as string) : undefined
     });
     
-    console.log("data from direct function call", enigmasData);
+    // console.log("data from direct function call", enigmasData);
     initialEnigmas = enigmasData.rows || [];
     totalCount = enigmasData.total || 0;
     

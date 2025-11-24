@@ -22,7 +22,7 @@ export default async function MagsListPage({
       is_trial: searchParams.is_trial ? parseInt(searchParams.is_trial as string) : undefined
     });
     
-    console.log("data from direct function call", magsData);
+    // console.log("data from direct function call", magsData);
     initialMags = magsData.rows || [];
     totalCount = magsData.total || 0;
     

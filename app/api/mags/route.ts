@@ -95,9 +95,9 @@ export async function getMagsList(params: {
         const rows = rowsResult || []
 
         // Get streaming servers for download links
-        const [servers]: any = await db.query(`SELECT * FROM streaming_servers ORDER BY id ASC LIMIT 1`)
+        const servers: any = await db.query(`SELECT * FROM streaming_servers ORDER BY id ASC LIMIT 1`)
 
-    
+
 
         if (servers && servers.length > 0) {
             const main_server = servers[0]
@@ -154,3 +154,354 @@ export async function getMagsList(params: {
     }
 }
 
+
+/**
+ * 
+ * do the same cycle for rest of payments pages to be SSR
+ * this is the node for each 
+ // trans/resellers/page for payments/sub-resellers/page
+async function getAllTransResellers(req, res) {
+    try {
+
+        const {
+            page = 1,
+            pageSize = 100,
+            searchTerm = {},
+        } = req.body;
+
+
+        const { search_txt = "", admin = 0, type = 2 } = searchTerm;
+
+        const user = req.user;
+        const { adminid, level } = user;
+
+        const queries = getAdminQueries(user);
+
+
+        let rowsPerPage = pageSize;
+        let queryCondition = "WHERE T.type=?";
+        let params = [];
+        params.push(type);
+
+        // Filter by admin
+        if (parseInt(admin) !== 0) {
+
+            queryCondition += " AND T.admin=?";
+            params.push(admin);
+            rowsPerPage = 500;
+        }
+
+        // Additional filter (if needed for search or active)
+        if (search_txt) {
+            queryCondition += " AND (T.Notes LIKE ? OR T.trans_id LIKE ?)";
+            params.push(`%${search_txt}%`, `%${search_txt}%`);
+        }
+
+        // if (active !== undefined) {
+        //     queryCondition += " AND active=?";
+        //     params.push(active);
+        // }
+
+
+        const order = "T.dateadded"
+        // // Handle order
+        const [orderBy, direction] = order.includes(":")
+            ? order.split(":")
+            : [order, "desc"];
+
+        const limit = rowsPerPage;
+        const offset = (page - 1) * rowsPerPage;
+
+        // Main query (fetch paginated results)
+        // const [results] = await db.query(
+        //     `SELECT * FROM maa_trans ${queryCondition}   ORDER BY ${orderBy} LIMIT ?, ?`,
+        //     [...params, offset, limit]
+        // );
+
+
+        const [results] = await db.query(
+            `SELECT T.*, A.admin_name AS admin_name
+     FROM maa_trans T
+     LEFT JOIN maa_admin A ON A.adminid = T.admin
+     ${queryCondition} ${queries.qry_sub}
+     ORDER BY trans_id DESC 
+     LIMIT ?, ?`,
+            [...params, offset, rowsPerPage]
+        );
+
+
+        // Count total rows
+        const [totalResult] = await db.query(
+            `SELECT COUNT(*) as total FROM maa_trans T ${queryCondition} ${queries.qry_sub}  `,
+            params
+        );
+
+        res.json({
+            success: true,
+            result: results,
+            totalLength: totalResult[0].total,
+            currentPage: parseInt(page),
+            rowsPerPage,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+        
+}
+
+// Admin query builder function (as above)
+function getAdminQueries(admin) {
+    const adminid = parseInt(admin.adminid, 10);
+    const queries = {
+        qry_admin: "",
+        qry_admin_where: "",
+        qry_admin_father: "",
+        qryWhereFather: "",
+        qry_sub: "",
+        qry_sub_for_dropdown: ""
+    };
+
+    if (admin.level === 1) {
+        queries.qry_admin = " AND isSub=0 ";
+        queries.qry_sub = " AND isSub=1 ";
+        queries.qryWhereFather = " WHERE father=0 ";
+    } else {
+        queries.qry_admin_father = ` AND admin_father='${adminid}' `;
+        queries.qryWhereFather = ` WHERE father=${adminid} `;
+        queries.qry_sub = ` AND admin_father='${adminid}' `;
+        queries.qry_sub_for_dropdown = ` (adminid='${adminid}' OR father=${adminid} OR main_father=${adminid}) `;
+        queries.qry_admin = ` AND admin=${adminid} `;
+        queries.qry_admin_where = ` WHERE admin=${adminid} `;
+    }
+
+    return queries;
+}
+
+
+for /trans/sub-invoices/page/  payments/sub-invoices/page
+
+const getAllSubInvoices = async (req, res) => {
+
+    try {
+        // 1. Extract query parameters
+        let {
+            page = 1,
+            order = 'trans_id:desc',
+            pageSize = 30,
+            searchTerm = {},
+            date1,
+            date2,
+            view_sub = 0
+        } = req.body;
+
+        let { search_txt = "", admin = 0, type = 2, } = searchTerm;
+
+        const user = req.user;
+        const queries = getAdminQueries(user);
+
+        // 2. Sanitize / defaults
+        page = parseInt(page, 10);
+        admin = parseInt(admin, 10);
+        view_sub = parseInt(view_sub, 10);
+        order = order.replace(':', ' '); // convert "trans_id:desc" to "trans_id desc"
+
+        let rows_per_page = pageSize;
+        let filters = [];
+        let params = [];
+
+        // 3. Admin / Sub-admin filters
+        if (admin !== 0) {
+            if (view_sub === 0) {
+                filters.push('(T.admin = ? OR T.admin_father = ?)');
+                params.push(admin, admin);
+            } else if (view_sub === 1) {
+                filters.push(`(
+                    T.admin_father = ? OR T.admin = ? OR 
+                    admin IN (
+                        SELECT adminid FROM maa_admin 
+                        WHERE father = ? OR main_father = ?
+                    )
+                )`);
+                params.push(admin, admin, admin, admin);
+            }
+        }
+
+        // 4. Date filter
+        if (date1 && date2) {
+            filters.push(`T.dateadded BETWEEN ? AND ?`);
+            params.push(`${date1} 00:00:00`, `${date2} 23:59:59`);
+        }
+
+        // 5. Notes filter (optional)
+        if (search_txt) {
+            filters.push(`T.Notes LIKE ? OR T.trans_id LIKE ?`);
+            params.push(`%${search_txt}%`, `%${search_txt}%`);
+        }
+
+        // 6. Build WHERE clause
+        let whereClause = 'WHERE T.type = 1';
+        if (filters.length > 0) {
+            whereClause += ' AND ' + filters.join(' AND ');
+        }
+
+        // 7. Pagination
+        const offset = (page - 1) * rows_per_page;
+
+        // 8. Main query
+        const sql = `
+            SELECT T.*, A.admin_name AS admin_name
+         FROM maa_trans T 
+          LEFT JOIN maa_admin A ON A.adminid = T.admin 
+            ${whereClause} 
+${queries.qry_sub}
+            ORDER BY ${order}
+            LIMIT ?, ?
+        `;
+
+        const [invoices] = await db.query(sql, [...params, offset, rows_per_page]);
+
+        // 9. Total count
+        const totalSql = `
+            SELECT COUNT(*) AS total 
+            FROM maa_trans T 
+          LEFT JOIN maa_admin A ON A.adminid = T.admin 
+            ${whereClause} 
+${queries.qry_sub}
+
+        `;
+        const [totalResult] = await db.query(totalSql, params);
+
+        const totalRows = totalResult[0].total;
+
+        // 10. Sum of depit
+        const sumSql = `
+            SELECT SUM(depit) AS total_amount 
+            FROM maa_trans T 
+          LEFT JOIN maa_admin A ON A.adminid = T.admin 
+              ${whereClause}  ${queries.qry_sub}
+            ORDER BY ${order}
+            LIMIT ?, ?
+        `;
+
+        const [sumResult] = await db.query(sumSql, [...params, offset, rows_per_page]);
+
+        // 11. Send JSON response
+        res.json({
+            success: true,
+            total: totalRows,
+            page,
+            perPage: rows_per_page,
+            result: invoices,
+
+            total_amount: sumResult[0].total_amount || 0
+        });
+
+    } catch (err) {
+        console.error('Error in getAllSubInvoices:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+
+for /trans/invoices/page/  payments/invoices/page
+const getAllInvoicesList = async (req, res) => {
+
+    try {
+        // Get query params
+        let {
+            page = 1,
+            pageSize = 100,
+            order = 'trans_id:desc',
+            Notes = '',
+            date1 = '',
+            date2 = '',
+            admin = 0,
+            depit
+        } = req.query;
+
+
+        const user = req.user;
+        const queries = getAdminQueries(user);
+
+        page = parseInt(page) || 1;
+        admin = parseInt(admin) || 0;
+
+        // Clean input (like _clean in PHP)
+        Notes = Notes.trim();
+        date1 = date1.trim();
+        date2 = date2.trim();
+
+        // Depit handling
+        if (depit !== '-') {
+            depit = depit ? parseFloat(depit) : '';
+        }
+
+        // Query building
+        let whereClauses = ["T.type = 1"];
+        let rowsPerPage = pageSize;
+
+        if (Notes) {
+            whereClauses.push(`T.Notes LIKE ?`);
+        }
+        if (admin !== 0) {
+            whereClauses.push(`T.admin = ?`);
+            // rowsPerPage = pageSize * 5;
+        }
+        if (date1 && date2) {
+            whereClauses.push(`T.dateadded BETWEEN ? AND ?`);
+            // rowsPerPage = 5000;
+        }
+        if (depit > 0) {
+            whereClauses.push(`T.depit = ?`);
+            // rowsPerPage = 500;
+        } else if (depit === '-') {
+            whereClauses.push(`T.depit < 0`);
+            // rowsPerPage = 500;
+        }
+
+        // Order
+        order = order.replace(':', ' ');
+
+        // Pagination
+        const offset = (page - 1) * rowsPerPage;
+
+        // Build SQL
+        const whereSQL = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+        const sql = `SELECT  T.*, A.admin_name AS admin_name
+         FROM maa_trans T 
+          LEFT JOIN maa_admin A ON A.adminid = T.admin
+          ${whereSQL}  ${queries.qry_admin} ORDER BY ${order} LIMIT ?, ?`;
+        const sqlCount = `SELECT COUNT(*) AS total FROM maa_trans T ${whereSQL}   ${queries.qry_admin} `;
+
+        // Parameters
+        let params = [];
+        if (Notes) params.push(`%${Notes}%`);
+        if (admin !== 0) params.push(admin);
+        if (date1 && date2) {
+            params.push(date1, date2);
+        }
+        if (depit > 0) {
+            params.push(depit);
+        }
+        // Pagination params
+        const paramsWithLimit = [...params, offset, rowsPerPage];
+
+        // Execute queries
+        const [rows] = await db.query(sql, paramsWithLimit);
+        const [countRows] = await db.query(sqlCount, params);
+
+        res.json({
+            total: countRows[0].total,
+            page,
+            perPage: rowsPerPage,
+            result: rows
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Server error fetching invoices' });
+    }
+};
+
+ */

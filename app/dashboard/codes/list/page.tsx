@@ -1,66 +1,34 @@
-import CodesListClient from '@/components/dashboard/codes/CodesListClient';
-import { fetchWithAuth } from '@/lib/server/fetchWithAuth';
-
-type CodesListPageProps = {
-  searchParams?: {
-    page?: string;
-    pageSize?: string;
-  };
-};
-
-type CodesPageResponse = {
-  data?: Array<Record<string, any>>;
-  result?: Array<Record<string, any>>;
-  total?: number;
-};
-
 export const dynamic = 'force-dynamic';
+import { fetchTransactionsList } from '@/app/api/codes/route';
+import CodesListClient from '@/components/dashboard/codes/CodesListClient';
 
-const DEFAULT_PAGE = 1;
-const DEFAULT_PAGE_SIZE = 10;
-
-export default async function CodesListPage({ searchParams }: CodesListPageProps) {
-  const pageParam = Number(searchParams?.page ?? DEFAULT_PAGE);
-  const pageSizeParam = Number(searchParams?.pageSize ?? DEFAULT_PAGE_SIZE);
-
-  const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : DEFAULT_PAGE;
-  const pageSize =
-    Number.isFinite(pageSizeParam) && pageSizeParam > 0 ? pageSizeParam : DEFAULT_PAGE_SIZE;
+export default async function CodesListPage({ searchParams }: {
+  searchParams: { [key: string]: string | string[] | undefined }
+}) {
+  let initialData: any[] = [];
+  let totalCount = 0;
+  let initialError: string | null = null;
 
   try {
-    const response = await fetchWithAuth<CodesPageResponse>('/codes/page', {
-      method: 'POST',
-      body: JSON.stringify({
-        page,
-        pageSize,
-      }),
+    const data = await fetchTransactionsList({
+      page: parseInt(searchParams.page as string || '1'),
+      pageSize: parseInt(searchParams.pageSize as string || '10'),
+      name: searchParams.name as string || undefined,
+      admin: searchParams.admin ? parseInt(searchParams.admin as string) : undefined,
+      date1: searchParams.date1 as string || undefined,
+      date2: searchParams.date2 as string || undefined,
+      id: searchParams.id ? parseInt(searchParams.id as string) : undefined,
+      order: searchParams.order as string || undefined,
     });
 
-    const rows = response?.data ?? response?.result ?? [];
-    const total = response?.total ?? rows.length;
+    // console.log("data from direct function call", data);
+    initialData = data.rows || [];
+    totalCount = data.totalLength || 0;
 
-    return (
-      <CodesListClient
-        rows={rows}
-        total={total}
-        page={Math.max(page - 1, 0)}
-        pageSize={pageSize}
-      />
-    );
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'We could not load the codes list. Please try again.';
-
-    return (
-      <CodesListClient
-        rows={[]}
-        total={0}
-        page={0}
-        pageSize={pageSize}
-        error={message}
-      />
-    );
+    console.error("Error fetching Codes Transactions:", error);
+    initialError = error instanceof Error ? error.message : 'Failed to load Codes Transactions';
   }
+
+  return <CodesListClient initialData={initialData} totalCount={totalCount} initialError={initialError} />;
 }

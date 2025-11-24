@@ -1,202 +1,34 @@
-'use client';
+export const dynamic = 'force-dynamic';
+import { getAllInvoicesList } from '@/app/api/payments/route';
+import InvoicesListClient from '@/components/dashboard/payments/InvoicesListClient';
 
-import * as React from 'react';
-import { useEffect, useState } from 'react';
-import {
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-} from '@mui/material';
-import { getAllInvoices } from '@/lib/services/transactionsService';
+export default async function InvoicesListPage({ searchParams }: {
+  searchParams: { [key: string]: string | string[] | undefined }
+}) {
+  let initialData: any[] = [];
+  let totalCount = 0;
+  let initialError: string | null = null;
 
-interface Column {
-  id: string;
-  label: string;
-  minWidth?: number;
-  align?: 'right' | 'left' | 'center';
-  format?: (value: any, row?: any) => string | React.ReactNode;
-}
+  try {
+    const data = await getAllInvoicesList({
+      page: parseInt(searchParams.page as string || '1'),
+      pageSize: parseInt(searchParams.pageSize as string || '100'),
+      order: searchParams.order as string || 'trans_id:desc',
+      Notes: searchParams.Notes as string || '',
+      date1: searchParams.date1 as string || '',
+      date2: searchParams.date2 as string || '',
+      admin: searchParams.admin ? parseInt(searchParams.admin as string) : 0,
+      depit: searchParams.depit as string || undefined,
+    });
 
-const columns: readonly Column[] = [
-  { id: 'id', label: 'ID', minWidth: 60 },
-  { id: 'dateadded', label: 'Date', minWidth: 150, align: 'center', format: (value: string) => {
-    if (!value) return 'N/A';
-    try {
-      return new Date(value).toLocaleDateString();
-    } catch {
-      return value;
-    }
-  }},
-  { id: 'admin', label: 'Reseller', minWidth: 150, format: (value: any, row: any) => {
-    return row.admin_name || value || 'N/A';
-  }},
-  { id: 'amount', label: 'Amount', minWidth: 120, align: 'right', format: (value: number) => {
-    const amount = typeof value === 'number' ? value : parseFloat(value);
-    return `$${isNaN(amount) ? '0.00' : amount.toFixed(2)}`;
-  }},
-  { id: 'Notes', label: ' Notes', minWidth: 200 },
-  { id: 'trans_id', label: 'Trans ID', minWidth: 120, align: 'center' },
-  { id: 'codes', label: 'Codes', minWidth: 100, align: 'center' },
-];
+    console.log("data from direct function call", data);
+    initialData = data.result || [];
+    totalCount = data.total || 0;
 
-export default function InvoicesListPage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [total, setTotal] = useState(0);
-
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
-  };
-
-  useEffect(() => {
-    const fetchInvoices = async () => {
-      try {
-        setLoading(true);
-        const result = await getAllInvoices({ page: page + 1, pageSize: rowsPerPage });
-        setInvoices(result.result || []);
-        setTotal(result.total || 0);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load invoices');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchInvoices();
-  }, [page, rowsPerPage]);
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+  } catch (error) {
+    console.error("Error fetching Invoices:", error);
+    initialError = error instanceof Error ? error.message : 'Failed to load Invoices';
   }
 
-  return (
-    <Box>
-      <Typography variant="h4" sx={{ mb: 5 }}>
-        Invoices List
-      </Typography>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Paper 
-        sx={{ 
-          width: '100%', 
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          maxHeight: 'calc(100vh - 200px)',
-        }}
-      >
-        <TableContainer 
-          sx={{ 
-            maxHeight: 'calc(100vh - 300px)',
-            overflowX: 'auto',
-            overflowY: 'auto',
-            '&::-webkit-scrollbar': {
-              height: '8px',
-              width: '8px',
-            },
-            '&::-webkit-scrollbar-track': {
-              background: 'transparent',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              background: 'rgba(0,0,0,0.2)',
-              borderRadius: '4px',
-            },
-          }}
-        >
-          <Table stickyHeader aria-label="sticky table" sx={{ minWidth: 900 }}>
-            <TableHead>
-              <TableRow>
-                {columns.map((column) => (
-                  <TableCell
-                    key={column.id}
-                    align={column.align || 'left'}
-                    sx={{ 
-                      minWidth: column.minWidth,
-                      whiteSpace: 'nowrap',
-                      fontWeight: 600,
-                      backgroundColor: 'background.paper',
-                      zIndex: 10,
-                    }}
-                  >
-                    {column.label}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {invoices.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={columns.length} align="center" sx={{ py: 3 }}>
-                    No data available
-                  </TableCell>
-                </TableRow>
-              ) : (
-                invoices.map((row) => {
-                    return (
-                      <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
-                        {columns.map((column) => {
-                          const value = row[column.id];
-                          return (
-                            <TableCell 
-                              key={column.id} 
-                              align={column.align || 'left'}
-                              sx={{ whiteSpace: 'nowrap' }}
-                            >
-                              {column.format ? column.format(value, row) : (value !== null && value !== undefined ? String(value) : 'N/A')}
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    );
-                  })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-          <TablePagination
-            rowsPerPageOptions={[10, 25, 100]}
-            component="div"
-            count={total}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-          sx={{
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            position: 'sticky',
-            bottom: 0,
-            backgroundColor: 'background.paper',
-            zIndex: 5,
-          }}
-        />
-      </Paper>
-    </Box>
-  );
+  return <InvoicesListClient initialData={initialData} totalCount={totalCount} initialError={initialError} />;
 }

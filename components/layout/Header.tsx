@@ -56,7 +56,7 @@ function Header({ onOpenNav, onToggleNav, navCollapsed, user }: HeaderProps) {
         boxShadow: 'none',
         height: HEADER.H_MOBILE,
         zIndex: theme.zIndex.appBar + 1,
-        bgcolor: 'background.paper',
+        bgcolor: '#ffffff',
         borderBottom: `1px solid ${theme.palette.divider}`,
         transition: theme.transitions.create(['width', 'margin-left'], {
           duration: theme.transitions.duration.shorter,
@@ -78,8 +78,12 @@ function Header({ onOpenNav, onToggleNav, navCollapsed, user }: HeaderProps) {
           onClick={onOpenNav}
           sx={{
             mr: 1,
-            color: 'text.primary',
+            color: '#6366f1',
             display: { lg: 'none' },
+            '&:hover': {
+              color: '#4f46e5',
+              bgcolor: 'rgba(99, 102, 241, 0.08)',
+            },
           }}
         >
           <MenuIcon />
@@ -89,8 +93,12 @@ function Header({ onOpenNav, onToggleNav, navCollapsed, user }: HeaderProps) {
           onClick={onToggleNav}
           sx={{
             mr: 1,
-            color: 'text.primary',
+            color: '#6366f1',
             display: { xs: 'none', lg: 'inline-flex' },
+            '&:hover': {
+              color: '#4f46e5',
+              bgcolor: 'rgba(99, 102, 241, 0.08)',
+            },
           }}
         >
           <MenuIcon />
@@ -113,7 +121,15 @@ function Header({ onOpenNav, onToggleNav, navCollapsed, user }: HeaderProps) {
           )}
           
           <IconButton onClick={handleMenuOpen} size="small">
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+            <Avatar 
+              sx={{ 
+                width: 32, 
+                height: 32, 
+                bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                fontWeight: 600,
+              }}
+            >
               {user?.adm_username?.[0] || user?.name?.[0] || user?.email?.[0] || 'U'}
             </Avatar>
           </IconButton>
@@ -126,11 +142,11 @@ function Header({ onOpenNav, onToggleNav, navCollapsed, user }: HeaderProps) {
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
           >
             <MenuItem onClick={handleProfile}>
-              <AccountCircleIcon sx={{ mr: 1 }} />
+              <AccountCircleIcon sx={{ mr: 1, color: '#10b981' }} />
               Profile
             </MenuItem>
             <MenuItem onClick={handleLogout} disabled={isPending}>
-              <LogoutIcon sx={{ mr: 1 }} />
+              <LogoutIcon sx={{ mr: 1, color: '#ef4444' }} />
               Logout
             </MenuItem>
           </Menu>
