@@ -41,22 +41,27 @@ function createPool() {
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
+      // Performance optimizations
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0,
     }
     
-    // Log connection attempt (without sensitive data)
-    console.log('🔌 Attempting database connection to:', {
-      host: dbConfig.host,
-      database: dbConfig.database,
-      user: dbConfig.user ? '***' : 'Not set',
-      hasPassword: !!dbConfig.password
-    })
+    // Only log on first pool creation (not on every request)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔌 Initializing database connection pool:', {
+        host: dbConfig.host,
+        database: dbConfig.database,
+      })
+    }
     
     pool = mysql.createPool(dbConfig)
     
-    // Test the connection
+    // Test the connection once on pool creation
     pool.getConnection()
       .then((connection) => {
-        console.log('✅ Database connection successful!')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Database connection pool initialized successfully!')
+        }
         connection.release()
       })
       .catch((error) => {

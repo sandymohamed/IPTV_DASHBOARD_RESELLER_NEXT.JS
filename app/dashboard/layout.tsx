@@ -1,8 +1,10 @@
 export const dynamic = 'force-dynamic';
 
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getServerSession } from '@/lib/auth/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import DashboardLoading from './loading';
 
 export default async function Layout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession();
@@ -21,5 +23,11 @@ export default async function Layout({ children }: { children: React.ReactNode }
     balance: (session.user as any).balance,
   };
 
-  return <DashboardLayout user={user}>{children}</DashboardLayout>;
+  return (
+    <DashboardLayout user={user}>
+      <Suspense fallback={<DashboardLoading />}>
+        {children}
+      </Suspense>
+    </DashboardLayout>
+  );
 }

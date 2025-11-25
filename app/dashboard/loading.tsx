@@ -1,19 +1,21 @@
-'use client';
+import { Box, CircularProgress, Typography } from '@mui/material';
 
-import { Box, CircularProgress } from '@mui/material';
-
-export default function Loading() {
+export default function DashboardLoading() {
   return (
     <Box
       sx={{
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: '50vh',
+        minHeight: '60vh',
+        gap: 2,
       }}
     >
-      <CircularProgress />
+      <CircularProgress size={48} />
+      <Typography variant="body2" color="text.secondary">
+        Loading...
+      </Typography>
     </Box>
   );
 }
-

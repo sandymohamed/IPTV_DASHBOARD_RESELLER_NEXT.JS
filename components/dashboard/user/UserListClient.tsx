@@ -48,14 +48,19 @@ import TvIcon from '@mui/icons-material/Tv';
 import AndroidIcon from '@mui/icons-material/Android';
 import Menu from '@mui/material/Menu';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import * as yup from 'yup';
-import { yupResolver } from '@hookform/resolvers/yup';
-import { User, updateUser, deleteUser, getUserById, renewUser, lockUnlockUser, killUserConnections } from '@/lib/services/userService';
+import {
+  User,
+  deleteUser,
+  enableDisableUser,
+  lockUnlockUser,
+  killUserConnections
+} from '@/lib/services/userService';
 import { showToast } from '@/lib/utils/toast';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
 import ElapsedTimeCounter from './ElapsedTimeCounter';
 import { useSpliceLongText } from '@/components/hooks/useSpliceLongText';
+import Label from '@/components/Label';
+import { fTimestamp } from '@/lib/utils/formatTime';
 
 interface Column {
   id: string;
@@ -101,14 +106,74 @@ const columns: readonly Column[] = [
       }
     },
   },
+
   {
     id: 'status',
     label: 'Status',
-    minWidth: 100,
+    minWidth: 120,
     align: 'center',
-    format: (value: number) => (
-      <Chip size="small" label={value === 1 ? 'Active' : 'Inactive'} color={value === 1 ? 'success' : 'error'} />
-    ),
+    format: (value: number, row: any) => {
+      const { is_trial, exp_date, admin_enabled, enabled } = row;
+      const expDateTimestamp = exp_date ? fTimestamp(typeof exp_date === 'number' && exp_date < 10000000000 ? exp_date * 1000 : exp_date) : 0;
+      const nowTimestamp = fTimestamp(new Date());
+      const isExpired = expDateTimestamp > 0 && expDateTimestamp < nowTimestamp && exp_date !== 0 && exp_date !== null;
+      const isValid = expDateTimestamp > nowTimestamp;
+
+      return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'center' }}>
+          {is_trial === 1 && (
+            <Label
+              variant="filled"
+              color="info"
+              sx={{
+                textTransform: 'uppercase',
+                padding: '5px',
+                height: '20px',
+                fontSize: '0.7rem',
+              }}
+            >
+              Trial
+            </Label>
+          )}
+
+          {isExpired && (
+            <Label variant="filled" color="error" sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
+              Expired
+            </Label>
+          )}
+
+          {isValid && is_trial === 1 && (
+            <Label variant="filled" color="success" sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
+              Enabled
+            </Label>
+          )}
+
+          {isValid && admin_enabled === 1 && enabled === 0 && (
+            <Label variant="filled" color="warning" sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
+              Banned
+            </Label>
+          )}
+
+          {isValid && admin_enabled === 0 && enabled === 1 && (
+            <Label variant="filled" color="warning" sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
+              Locked
+            </Label>
+          )}
+
+          {isValid && admin_enabled === 0 && enabled === 0 && (
+            <Label variant="filled" color="error" sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
+              Blocked
+            </Label>
+          )}
+
+          {isValid && admin_enabled === 1 && enabled === 1 && is_trial === 0 && (
+            <Label variant="filled" color="success" sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
+              Enabled
+            </Label>
+          )}
+        </Box>
+      );
+    },
   },
   {
     id: 'max_connections',
@@ -434,7 +499,6 @@ function RowActions({ row }: { row: any }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [openEdit, setOpenEdit] = useState(false);
   const [openM3U, setOpenM3U] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
   const [openConfirmEnable, setOpenConfirmEnable] = useState(false);
@@ -442,11 +506,10 @@ function RowActions({ row }: { row: any }) {
   const [openConfirmKill, setOpenConfirmKill] = useState(false);
   const [openTV, setOpenTV] = useState(false);
   const [openAndroid, setOpenAndroid] = useState(false);
-  
-  const id = row.id || row.ID;
-  const status = row.status;
-  const enabled = status === 1;
-  const admin_enabled = row.admin_enabled !== undefined ? row.admin_enabled === 1 : true;
+
+  const id = row.id ;
+  const enabled = row?.enabled;
+  const admin_enabled = row.admin_enabled;
   const download = row.download;
 
   const handleOpenPopover = (event: React.MouseEvent<HTMLElement>) => {
@@ -458,7 +521,7 @@ function RowActions({ row }: { row: any }) {
   };
 
   const handleEdit = () => {
-    setOpenEdit(true);
+    router.push(`/dashboard/user/edit/${id}`);
     handleClosePopover();
   };
 
@@ -475,12 +538,16 @@ function RowActions({ row }: { row: any }) {
   const handleEnableDisable = async () => {
     try {
       setBusy(true);
-      await updateUser(String(id), { status: enabled ? 0 : 1 });
-      showToast.success(enabled ? 'User disabled successfully' : 'User enabled successfully');
-      setOpenConfirmEnable(false);
-      router.refresh();
+      const response = await enableDisableUser(String(id));
+      if (response?.data?.success || response?.success) {
+        showToast.success('Success!');
+        setOpenConfirmEnable(false);
+        router.refresh();
+      } else {
+        showToast.error('Failed, Please try again!');
+      }
     } catch (error: any) {
-      showToast.error(error?.message || 'Failed to update user status');
+      showToast.error(error?.message || 'Failed, Please try again!');
     } finally {
       setBusy(false);
     }
@@ -489,12 +556,16 @@ function RowActions({ row }: { row: any }) {
   const handleLockUnlock = async () => {
     try {
       setBusy(true);
-      await lockUnlockUser(String(id));
-      showToast.success(admin_enabled ? 'User unlocked successfully' : 'User locked successfully');
-      setOpenConfirmLock(false);
-      router.refresh();
+      const response = await lockUnlockUser(String(id));
+      if (response?.data?.success || response?.success) {
+        showToast.success('Success!');
+        setOpenConfirmLock(false);
+        router.refresh();
+      } else {
+        showToast.error('Failed, Please try again!');
+      }
     } catch (error: any) {
-      showToast.error(error?.message || 'Failed to update lock status');
+      showToast.error(error?.message || 'Failed, Please try again!');
     } finally {
       setBusy(false);
     }
@@ -503,12 +574,16 @@ function RowActions({ row }: { row: any }) {
   const handleKill = async () => {
     try {
       setBusy(true);
-      await killUserConnections(String(id));
-      showToast.success('User connections killed successfully');
-      setOpenConfirmKill(false);
-      router.refresh();
+      const response = await killUserConnections(String(id));
+      if (response?.data?.success || response?.success) {
+        showToast.success('Success!');
+        setOpenConfirmKill(false);
+        router.refresh();
+      } else {
+        showToast.error('Failed, Please try again!');
+      }
     } catch (error: any) {
-      showToast.error(error?.message || 'Failed to kill connections');
+      showToast.error(error?.message || 'Failed, Please try again!');
     } finally {
       setBusy(false);
     }
@@ -517,12 +592,16 @@ function RowActions({ row }: { row: any }) {
   const handleDelete = async () => {
     try {
       setBusy(true);
-      await deleteUser(String(id));
-      showToast.success('User deleted successfully');
-      setOpenDelete(false);
-      router.refresh();
+      const response = await deleteUser(String(id));
+      if (response?.data?.success || response?.success) {
+        showToast.success('Delete success!');
+        setOpenDelete(false);
+        router.refresh();
+      } else {
+        showToast.error('Delete failed! try again');
+      }
     } catch (error: any) {
-      showToast.error(error?.message || 'Failed to delete user');
+      showToast.error(error?.message || 'Delete failed! try again');
     } finally {
       setBusy(false);
     }
@@ -636,17 +715,6 @@ function RowActions({ row }: { row: any }) {
         </MenuItem>
       </Menu>
 
-      {openEdit && (
-        <EditUserDialog
-          open={openEdit}
-          onClose={() => setOpenEdit(false)}
-          userId={id}
-          onSaved={async () => {
-            setOpenEdit(false);
-            router.refresh();
-          }}
-        />
-      )}
 
       {openM3U && download && (
         <M3UDialog open={openM3U} onClose={() => setOpenM3U(false)} downloadData={download} />
@@ -658,6 +726,7 @@ function RowActions({ row }: { row: any }) {
         onConfirm={handleEnableDisable}
         title={!enabled ? 'Enable' : 'Disable'}
         message={!enabled ? 'Are you sure you want to enable this user?' : 'Are you sure you want to disable this user?'}
+        confirmText={!enabled ? 'Enable' : 'Disable'}
         itemName={row.username || `User #${id}`}
         loading={busy}
       />
@@ -668,6 +737,7 @@ function RowActions({ row }: { row: any }) {
         onConfirm={handleLockUnlock}
         title={!admin_enabled ? 'Unlock' : 'Lock'}
         message={!admin_enabled ? 'Are you sure you want to unlock this user?' : 'Are you sure you want to lock this user?'}
+        confirmText={!admin_enabled ? 'Unlock' : 'Lock'}
         itemName={row.username || `User #${id}`}
         loading={busy}
       />
@@ -678,6 +748,7 @@ function RowActions({ row }: { row: any }) {
         onConfirm={handleKill}
         title="Kill Connections"
         message="Are you sure you want to kill all active connections for this user?"
+        confirmText="Kill"
         itemName={row.username || `User #${id}`}
         loading={busy}
       />
@@ -720,133 +791,6 @@ function RowActions({ row }: { row: any }) {
   );
 }
 
-type EditUserForm = {
-  username?: string;
-  password?: string;
-  reseller_notes?: string;
-  status?: number;
-};
-
-const editUserSchema: yup.ObjectSchema<EditUserForm> = yup
-  .object({
-    username: yup.string().optional(),
-    password: yup.string().optional(),
-    reseller_notes: yup.string().optional(),
-    status: yup.number().oneOf([0, 1]).optional(),
-  })
-  .required();
-
-function EditUserDialog({
-  open,
-  onClose,
-  userId,
-  onSaved,
-}: {
-  open: boolean;
-  onClose: () => void;
-  userId: string | number;
-  onSaved: () => void | Promise<void>;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [userData, setUserData] = useState<any>(null);
-  const {
-    register,
-    handleSubmit,
-    formState: { isSubmitting },
-    reset,
-  } = useForm<EditUserForm>({
-    resolver: yupResolver(editUserSchema),
-  });
-
-  useEffect(() => {
-    if (open && userId) {
-      const fetchUser = async () => {
-        try {
-          setLoading(true);
-          const data = await getUserById(String(userId));
-          setUserData(data);
-          reset({
-            username: data?.username || '',
-            password: '',
-            reseller_notes: data?.notes || data?.reseller_notes || '',
-            status: data?.status ?? 1,
-          });
-        } catch (error) {
-          console.error('Failed to fetch user:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchUser();
-    } else if (!open) {
-      // Reset form when dialog closes
-      reset({
-        username: '',
-        password: '',
-        reseller_notes: '',
-        status: 1,
-      });
-      setUserData(null);
-    }
-  }, [open, userId, reset]);
-
-  const onSubmit = async (data: EditUserForm) => {
-    if (!userId) return;
-    try {
-      await updateUser(String(userId), data);
-      showToast.success('User updated successfully');
-      await onSaved();
-    } catch (error: any) {
-      showToast.error(error?.message || 'Failed to update user');
-    }
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Edit User</DialogTitle>
-      <DialogContent sx={{ pt: 2 }}>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-            <CircularProgress size={24} />
-          </Box>
-        ) : (
-          <MuiStack spacing={2}>
-            <TextField label="username" {...register('username')} fullWidth />
-            <TextField
-              label="Password"
-              type="password"
-              {...register('password')}
-              fullWidth
-              placeholder="Leave empty to keep current"
-            />
-            <TextField
-              label="Notes"
-              {...register('reseller_notes')}
-              fullWidth
-              multiline
-              rows={3}
-            />
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select label="Status" {...(register('status') as any)}>
-                <MenuItem value={1}>Active</MenuItem>
-                <MenuItem value={0}>Inactive</MenuItem>
-              </Select>
-            </FormControl>
-          </MuiStack>
-        )}
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={isSubmitting || loading}>
-          Cancel
-        </Button>
-        <Button onClick={handleSubmit(onSubmit)} variant="contained" disabled={isSubmitting || loading}>
-          Save
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
 
 function M3UDialog({ open, onClose, downloadData }: { open: boolean; onClose: () => void; downloadData: any[] }) {
   const [selectedFormat, setSelectedFormat] = useState('');

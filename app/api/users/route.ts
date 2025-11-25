@@ -3,6 +3,7 @@
 import { db } from '@/lib/db';
 import { getServerSession } from '@/lib/auth/auth';
 import { downloadlist } from '@/lib/utils/downloadlist';
+import { withQueryCache, createCacheKey } from '@/lib/cache/queryCache';
 
 
 // This runs on the server - has access to your existing logic
@@ -22,11 +23,48 @@ export async function getUsersList(params: {
   } = params
 
   const offset = (page - 1) * pageSize
-  const session = await getServerSession();
 
+  // Check session first (required for permission checks)
+  const session = await getServerSession();
   if (!session?.user) {
-    throw new Error('Not authenticated')
+    throw new Error('Not authenticated');
   }
+
+  // Create cache key including user ID (since permissions differ per user)
+  const cacheKey = createCacheKey('users-list', {
+    userId: session.user.id,
+    page,
+    pageSize,
+    searchTerm,
+    active_connections,
+    is_trial,
+  });
+
+  // Use request-level cache (prevents duplicate queries in same request)
+  // Note: We don't cache across requests since data is user-specific and changes frequently
+  return withQueryCache(cacheKey, async () => {
+    return executeUsersQuery({
+      session,
+      page,
+      pageSize,
+      offset,
+      searchTerm,
+      active_connections,
+      is_trial,
+    });
+  });
+}
+
+async function executeUsersQuery(params: {
+  session: any
+  page: number
+  pageSize: number
+  offset: number
+  searchTerm: string
+  active_connections: number | null
+  is_trial: number | null
+}) {
+  const { session, searchTerm, active_connections, is_trial, offset, pageSize, page } = params;
 
   try {
     let condition = ""
@@ -168,7 +206,7 @@ export async function getUsersList(params: {
 
     // Get streaming servers for download links
     const streaming_servers: any = await db.query(`SELECT * FROM streaming_servers ORDER BY id ASC LIMIT 1`)
-    
+
     if (streaming_servers && streaming_servers.length > 0) {
       const main_server = streaming_servers[0]
       const http_broadcast_port = main_server.http_broadcast_port || 80

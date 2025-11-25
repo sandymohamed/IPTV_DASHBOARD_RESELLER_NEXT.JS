@@ -32,7 +32,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <AuthProvider>
           <SettingsProvider>
             <ThemeProvider>
               <NotificationSetup />
@@ -40,7 +39,6 @@ export default function RootLayout({
               {children}
             </ThemeProvider>
           </SettingsProvider>
-        </AuthProvider>
       </body>
     </html>
   );

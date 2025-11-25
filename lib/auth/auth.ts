@@ -160,9 +160,11 @@ export default handler
 
 // Export getServerSession for server-side usage
 import { getServerSession as _getServerSession } from 'next-auth/next'
+import { cache } from 'react'
 
-export async function getServerSession() {
+// Cache session per request to avoid multiple calls
+export const getServerSession = cache(async () => {
   return _getServerSession(authOptions)
-}
+})
 
 export { authOptions }

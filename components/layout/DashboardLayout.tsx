@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, memo, useCallback, useEffect } from 'react';
+import { useState, memo, useCallback, useEffect, Suspense } from 'react';
 import { Box } from '@mui/material';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import Main from './Main';
 import RouteLoader from '@/components/loading/RouteLoader';
 import { DashboardUserProvider } from '@/lib/contexts/DashboardUserContext';
+import DashboardLoading from '@/app/dashboard/loading';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -67,7 +68,11 @@ function DashboardLayout({ children, user }: DashboardLayoutProps) {
           navCollapsed={navCollapsed}
         />
         <Sidebar openNav={openNav} onCloseNav={handleCloseNav} navCollapsed={navCollapsed} />
-        <Main navCollapsed={navCollapsed}>{children}</Main>
+        <Main navCollapsed={navCollapsed}>
+          <Suspense fallback={<DashboardLoading />}>
+            {children}
+          </Suspense>
+        </Main>
       </Box>
     </DashboardUserProvider>
   );

@@ -12,7 +12,6 @@ export default async function HomePage() {
     stats = data;
   } catch (err) {
     if (err instanceof AuthFetchError) {
-      console.log("******err", err);
       error = err.status === 401 ? 'SESSION_EXPIRED' : err.message;
     } else if (err instanceof Error) {
       error = err.message;

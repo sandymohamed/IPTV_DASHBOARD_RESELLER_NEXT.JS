@@ -61,9 +61,18 @@ export const deleteUser = async (id: string) => {
   }
 };
 
-export const renewUser = async (id: string) => {
+export const renewUser = async (id: string, data: any) => {
   try {
-    const response = await axiosInstance.post(`/users/renew/${id}`);
+    const response = await axiosInstance.post(`/users/renew/${id}`, data);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};
+
+export const enableDisableUser = async (id: string) => {
+  try {
+    const response = await axiosInstance.post(`/users/enable_disable/${id}`, {});
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error;
@@ -72,7 +81,7 @@ export const renewUser = async (id: string) => {
 
 export const lockUnlockUser = async (id: string) => {
   try {
-    const response = await axiosInstance.post(`/users/lock_unlock/${id}`);
+    const response = await axiosInstance.post(`/users/lock_unlock/${id}`, {});
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error;
@@ -81,7 +90,7 @@ export const lockUnlockUser = async (id: string) => {
 
 export const killUserConnections = async (id: string) => {
   try {
-    const response = await axiosInstance.post(`/users/kill/${id}`);
+    const response = await axiosInstance.post(`/users/kill/${id}`, {});
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error;

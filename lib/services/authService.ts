@@ -37,6 +37,7 @@ export async function loginUser(credentials: {
             throw new Error('Input data too long')
         }
 
+        
         // 4. Sanitize username
         const sanitizedUsername = username.replace(/[^a-zA-Z0-9-]/gi, '')
 

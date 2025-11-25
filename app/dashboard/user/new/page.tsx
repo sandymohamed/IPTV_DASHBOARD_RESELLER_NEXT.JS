@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import UserCreateForm from '@/components/dashboard/user/UserCreateForm';
 import { AuthFetchError, fetchWithAuth } from '@/lib/server/fetchWithAuth';
 import { getServerSession } from '@/lib/auth/auth';
+import { getTemplatesList } from '@/app/api/templates/route';
 
 
 export default async function UserCreatePage() {
@@ -11,6 +12,7 @@ export default async function UserCreatePage() {
 
 
   let packages: any[] = [];
+  let templates: any[] = [];
 
   if (session?.user?.member_group_id) {
     try {
@@ -25,6 +27,15 @@ export default async function UserCreatePage() {
     }
   }
 
-  return <UserCreateForm packages={packages} />;
+  // Fetch templates
+  try {
+    const templatesData = await getTemplatesList({ page: 1, pageSize: 100 });
+    templates = templatesData?.rows || [];
+  } catch (error) {
+    console.error('Error fetching templates:', error);
+    templates = [];
+  }
+
+  return <UserCreateForm packages={packages} templates={templates} />;
 }
 
