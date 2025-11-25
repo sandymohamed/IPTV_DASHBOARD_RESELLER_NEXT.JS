@@ -60,3 +60,30 @@ export const deleteUser = async (id: string) => {
     throw error.response?.data || error;
   }
 };
+
+export const renewUser = async (id: string) => {
+  try {
+    const response = await axiosInstance.post(`/users/renew/${id}`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};
+
+export const lockUnlockUser = async (id: string) => {
+  try {
+    const response = await axiosInstance.post(`/users/lock_unlock/${id}`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};
+
+export const killUserConnections = async (id: string) => {
+  try {
+    const response = await axiosInstance.post(`/users/kill/${id}`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};

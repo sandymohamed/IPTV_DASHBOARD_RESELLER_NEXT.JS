@@ -39,11 +39,19 @@ import ToggleOnIcon from '@mui/icons-material/ToggleOn';
 import ToggleOffIcon from '@mui/icons-material/ToggleOff';
 import FileCopyIcon from '@mui/icons-material/FileCopy';
 import DownloadIcon from '@mui/icons-material/Download';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import LockIcon from '@mui/icons-material/Lock';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
+import CancelIcon from '@mui/icons-material/Cancel';
+import TvIcon from '@mui/icons-material/Tv';
+import AndroidIcon from '@mui/icons-material/Android';
+import Menu from '@mui/material/Menu';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { updateMag, deleteMag, getMagById } from '@/lib/services/magsService';
+import { updateMag, deleteMag, getMagById, renewMag, lockUnlockMag, killMagConnections } from '@/lib/services/magsService';
 import { useApiClient } from '@/lib/hooks/useApiClient';
 import { showToast } from '@/lib/utils/toast';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
@@ -392,68 +400,208 @@ function RowActions({ row }: { row: any }) {
   const router = useRouter();
   const apiClient = useApiClient();
   const [busy, setBusy] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [openEdit, setOpenEdit] = useState(false);
   const [openM3U, setOpenM3U] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
+  const [openConfirmEnable, setOpenConfirmEnable] = useState(false);
+  const [openConfirmLock, setOpenConfirmLock] = useState(false);
+  const [openConfirmKill, setOpenConfirmKill] = useState(false);
+  const [openTV, setOpenTV] = useState(false);
+  const [openAndroid, setOpenAndroid] = useState(false);
+  
   const id = row.id;
   const status = row.enabled;
+  const enabled = status === 1;
+  const admin_enabled = row.admin_enabled !== undefined ? row.admin_enabled === 1 : true;
   const download = row.download;
 
+  const handleOpenPopover = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClosePopover = () => {
+    setAnchorEl(null);
+  };
+
+  const handleEdit = () => {
+    setOpenEdit(true);
+    handleClosePopover();
+  };
+
+  const handleRenew = () => {
+    router.push(`/dashboard/mags/renew/${id}`);
+    handleClosePopover();
+  };
+
+  const handleM3U = () => {
+    setOpenM3U(true);
+    handleClosePopover();
+  };
+
+  const handleEnableDisable = async () => {
+    try {
+      setBusy(true);
+      await updateMag(apiClient, String(id), { status: enabled ? 0 : 1 });
+      showToast.success(enabled ? 'Device disabled successfully' : 'Device enabled successfully');
+      setOpenConfirmEnable(false);
+      router.refresh();
+    } catch (error: any) {
+      showToast.error(error?.message || 'Failed to update device status');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleLockUnlock = async () => {
+    try {
+      setBusy(true);
+      await lockUnlockMag(apiClient, String(id));
+      showToast.success(admin_enabled ? 'Device unlocked successfully' : 'Device locked successfully');
+      setOpenConfirmLock(false);
+      router.refresh();
+    } catch (error: any) {
+      showToast.error(error?.message || 'Failed to update lock status');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleKill = async () => {
+    try {
+      setBusy(true);
+      await killMagConnections(apiClient, String(id));
+      showToast.success('Device connections killed successfully');
+      setOpenConfirmKill(false);
+      router.refresh();
+    } catch (error: any) {
+      showToast.error(error?.message || 'Failed to kill connections');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      setBusy(true);
+      await deleteMag(apiClient, String(id));
+      showToast.success('Device deleted successfully');
+      setOpenDelete(false);
+      router.refresh();
+    } catch (error: any) {
+      showToast.error(error?.message || 'Failed to delete device');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <MuiStack direction="row" spacing={1} alignItems="center">
-      <Tooltip title="View">
-        <span>
-          <Button variant="text" size="small" onClick={() => router.push(`/dashboard/mags/${id}`)} disabled={busy}>
-            <VisibilityIcon fontSize="small" />
-          </Button>
-        </span>
-      </Tooltip>
-      <Tooltip title="Edit">
-        <span>
-          <Button variant="text" size="small" onClick={() => setOpenEdit(true)} disabled={busy}>
-            <EditIcon fontSize="small" />
-          </Button>
-        </span>
-      </Tooltip>
-      {download && download.length > 0 && (
-        <Tooltip title="M3U File">
-          <span>
-            <Button variant="text" size="small" onClick={() => setOpenM3U(true)} disabled={busy}>
-              <FileCopyIcon fontSize="small" />
-            </Button>
-          </span>
-        </Tooltip>
-      )}
-      <Tooltip title={status === 1 ? 'Disable' : 'Enable'}>
-        <span>
-          <Button
-            variant="text"
-            size="small"
-            onClick={async () => {
-              try {
-                setBusy(true);
-                await updateMag(apiClient, String(id), { status: status === 1 ? 0 : 1 });
-                showToast.success(status === 1 ? 'Device disabled successfully' : 'Device enabled successfully');
-                router.refresh();
-              } catch (error: any) {
-                showToast.error(error?.message || 'Failed to update device status');
-              } finally {
-                setBusy(false);
-              }
-            }}
-            disabled={busy}
-          >
-            {status === 1 ? <ToggleOffIcon fontSize="small" /> : <ToggleOnIcon fontSize="small" />}
-          </Button>
-        </span>
-      </Tooltip>
-      <Tooltip title="Delete">
-        <span>
-          <Button color="error" variant="text" size="small" onClick={() => setOpenDelete(true)} disabled={busy}>
-            <DeleteIcon fontSize="small" />
-          </Button>
-        </span>
-      </Tooltip>
+    <>
+      <IconButton onClick={handleOpenPopover} disabled={busy}>
+        <MoreVertIcon />
+      </IconButton>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleClosePopover}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        sx={{ width: 310 }}
+      >
+        <MenuItem onClick={handleEdit}>
+          <EditIcon sx={{ mr: 1, fontSize: 20 }} />
+          Edit
+        </MenuItem>
+
+        <MenuItem onClick={handleRenew}>
+          <RefreshIcon sx={{ mr: 1, fontSize: 20 }} />
+          Renew
+        </MenuItem>
+
+        {download && download.length > 0 && (
+          <MenuItem onClick={handleM3U}>
+            <FileCopyIcon sx={{ mr: 1, fontSize: 20 }} />
+            M3U File
+          </MenuItem>
+        )}
+
+        <MenuItem
+          onClick={() => {
+            setOpenConfirmEnable(true);
+            handleClosePopover();
+          }}
+          sx={{ color: 'warning.main' }}
+        >
+          {!enabled ? <ToggleOnIcon sx={{ mr: 1, fontSize: 20 }} /> : <ToggleOffIcon sx={{ mr: 1, fontSize: 20 }} />}
+          {!enabled ? 'Enable' : 'Disable'}
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            setOpenConfirmLock(true);
+            handleClosePopover();
+          }}
+          sx={{ color: !admin_enabled ? 'success.main' : 'warning.main' }}
+        >
+          {!admin_enabled ? (
+            <LockOpenIcon sx={{ mr: 1, fontSize: 20 }} />
+          ) : (
+            <LockIcon sx={{ mr: 1, fontSize: 20 }} />
+          )}
+          {!admin_enabled ? 'Unlock' : 'Lock'}
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            setOpenConfirmKill(true);
+            handleClosePopover();
+          }}
+          sx={{ color: 'error.main' }}
+        >
+          <CancelIcon sx={{ mr: 1, fontSize: 20 }} />
+          Kill
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            setOpenDelete(true);
+            handleClosePopover();
+          }}
+          sx={{ color: 'error.main' }}
+        >
+          <DeleteIcon sx={{ mr: 1, fontSize: 20 }} />
+          Remove
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            setOpenTV(true);
+            handleClosePopover();
+          }}
+          sx={{ color: 'info.main' }}
+        >
+          <TvIcon sx={{ mr: 1, fontSize: 20 }} />
+          Upload To Smart TV
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            setOpenAndroid(true);
+            handleClosePopover();
+          }}
+          sx={{ color: 'success.main' }}
+        >
+          <AndroidIcon sx={{ mr: 1, fontSize: 20 }} />
+          Upload To Android
+        </MenuItem>
+      </Menu>
 
       {openEdit && (
         <EditMagDialog
@@ -472,26 +620,69 @@ function RowActions({ row }: { row: any }) {
       )}
 
       <DeleteConfirmation
+        open={openConfirmEnable}
+        onClose={() => setOpenConfirmEnable(false)}
+        onConfirm={handleEnableDisable}
+        title={!enabled ? 'Enable' : 'Disable'}
+        message={!enabled ? 'Are you sure you want to enable this device?' : 'Are you sure you want to disable this device?'}
+        itemName={row.username || row.mac || `Device #${id}`}
+        loading={busy}
+      />
+
+      <DeleteConfirmation
+        open={openConfirmLock}
+        onClose={() => setOpenConfirmLock(false)}
+        onConfirm={handleLockUnlock}
+        title={!admin_enabled ? 'Unlock' : 'Lock'}
+        message={!admin_enabled ? 'Are you sure you want to unlock this device?' : 'Are you sure you want to lock this device?'}
+        itemName={row.username || row.mac || `Device #${id}`}
+        loading={busy}
+      />
+
+      <DeleteConfirmation
+        open={openConfirmKill}
+        onClose={() => setOpenConfirmKill(false)}
+        onConfirm={handleKill}
+        title="Kill Connections"
+        message="Are you sure you want to kill all active connections for this device?"
+        itemName={row.username || row.mac || `Device #${id}`}
+        loading={busy}
+      />
+
+      <DeleteConfirmation
         open={openDelete}
         onClose={() => setOpenDelete(false)}
-        onConfirm={async () => {
-          try {
-            setBusy(true);
-            await deleteMag(apiClient, String(id));
-            showToast.success('Device deleted successfully');
-            setOpenDelete(false);
-            router.refresh();
-          } catch (error: any) {
-            showToast.error(error?.message || 'Failed to delete device');
-            setBusy(false);
-          }
-        }}
+        onConfirm={handleDelete}
         title="Delete Device"
         message="Are you sure you want to delete this device? This action cannot be undone and will permanently remove the device and all associated data."
         itemName={row.username || row.mac || `Device #${id}`}
         loading={busy}
       />
-    </MuiStack>
+
+      {openTV && (
+        <Dialog open={openTV} onClose={() => setOpenTV(false)}>
+          <DialogTitle>Upload To Smart TV</DialogTitle>
+          <DialogContent>
+            <Typography>Smart TV upload functionality coming soon...</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenTV(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
+      )}
+
+      {openAndroid && (
+        <Dialog open={openAndroid} onClose={() => setOpenAndroid(false)}>
+          <DialogTitle>Upload To Android</DialogTitle>
+          <DialogContent>
+            <Typography>Android upload functionality coming soon...</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenAndroid(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
+      )}
+    </>
   );
 }
 
@@ -554,6 +745,15 @@ function EditMagDialog({
         }
       };
       fetchDevice();
+    } else if (!open) {
+      // Reset form when dialog closes
+      reset({
+        userName: '',
+        password: '',
+        Notes: '',
+        status: 1,
+      });
+      setDeviceData(null);
     }
   }, [open, deviceId, reset, apiClient]);
 
@@ -578,7 +778,7 @@ function EditMagDialog({
           </Box>
         ) : (
           <MuiStack spacing={2}>
-            <TextField label="User Name" {...register('userName')} fullWidth defaultValue={deviceData?.username || ''} />
+            <TextField label="User Name" {...register('userName')} fullWidth />
             <TextField
               label="Password"
               type="password"
@@ -592,11 +792,10 @@ function EditMagDialog({
               fullWidth
               multiline
               rows={3}
-              defaultValue={deviceData?.reseller_notes || ''}
             />
             <FormControl fullWidth>
               <InputLabel>Status</InputLabel>
-              <Select label="Status" defaultValue={deviceData?.enabled ?? 1} {...(register('status') as any)}>
+              <Select label="Status" {...(register('status') as any)}>
                 <MenuItem value={1}>Active</MenuItem>
                 <MenuItem value={0}>Inactive</MenuItem>
               </Select>

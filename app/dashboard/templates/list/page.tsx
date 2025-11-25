@@ -21,7 +21,7 @@ export default async function TemplatesListPage({ searchParams }: {
       searchTerm: searchParams.search as string || '',
     });
 
-    console.log("data from direct function call", data);
+    // console.log("data from direct function call", data);
     initialData = data.rows || [];
     totalCount = data.total || 0;
 

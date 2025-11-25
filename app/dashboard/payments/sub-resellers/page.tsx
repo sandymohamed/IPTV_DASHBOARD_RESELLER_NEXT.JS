@@ -28,7 +28,7 @@ export default async function PaymentsSubResellersPage({ searchParams }: {
       searchTerm: Object.keys(searchTerm).length > 0 ? searchTerm : undefined,
     });
 
-    console.log("data from direct function call", data);
+    // console.log("data from direct function call", data);
     initialData = data.result || [];
     totalCount = data.totalLength || 0;
 

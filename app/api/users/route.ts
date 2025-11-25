@@ -50,7 +50,13 @@ export async function getUsersList(params: {
 
     // Permission check
     if (session.user.level !== 1) {
-      condition += ` AND (user.created_by = ${session.user.id} OR user.created_by IN (${session.user.resellers || ''}))`
+      const resellers = session.user.resellers;
+      if (resellers && Array.isArray(resellers) && resellers.length > 0) {
+        const resellerIds = resellers.join(',');
+        condition += ` AND (user.created_by = ${session.user.id} OR user.created_by IN (${resellerIds}))`
+      } else {
+        condition += ` AND user.created_by = ${session.user.id}`
+      }
     }
 
     const query = `
@@ -162,7 +168,7 @@ export async function getUsersList(params: {
 
     // Get streaming servers for download links
     const streaming_servers: any = await db.query(`SELECT * FROM streaming_servers ORDER BY id ASC LIMIT 1`)
-    console.log("streaming_servers from getUsersList", streaming_servers)
+    
     if (streaming_servers && streaming_servers.length > 0) {
       const main_server = streaming_servers[0]
       const http_broadcast_port = main_server.http_broadcast_port || 80
@@ -180,7 +186,6 @@ export async function getUsersList(params: {
         const rDNS = main_server.domain_name || main_server.server_ip
         const downloadfiles = []
 
-        console.log("downloadlist from getUsersList", downloadlist[0])
         for (const list of downloadlist) {
           let rBefore = ""
           let rAfter = ""
@@ -209,7 +214,6 @@ export async function getUsersList(params: {
         }
 
         row.download = downloadfiles
-        console.log("download from getUsersList", row.download)
       }
     }
 

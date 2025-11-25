@@ -40,12 +40,6 @@ export async function loginUser(credentials: {
         // 4. Sanitize username
         const sanitizedUsername = username.replace(/[^a-zA-Z0-9-]/gi, '')
 
-        // Debug logging (remove in production)
-        console.log('🔍 Login attempt:', {
-            originalUsername: username,
-            sanitizedUsername: sanitizedUsername,
-            usernameChanged: username !== sanitizedUsername
-        })
 
         // 5. Check for same username/password
         if (username === password && username !== 'admin') {
@@ -78,12 +72,6 @@ export async function loginUser(credentials: {
 
         const rows: any = await db.query(query, [sanitizedUsername])
 
-        // Debug logging
-        console.log('👤 User lookup result:', {
-            username: sanitizedUsername,
-            found: rows && rows.length > 0,
-            userCount: rows?.length || 0
-        })
 
         if (rows && rows.length > 0) {
             const user = rows[0]
@@ -107,18 +95,6 @@ export async function loginUser(credentials: {
 
             // 9. Verify password
             const hashedPassword = hashPassword(password)
-
-            // Debug logging (remove in production)
-            console.log('🔐 Password verification:', {
-                username: sanitizedUsername,
-                hashedInputLength: hashedPassword.length,
-                storedPasswordLength: user.adm_password?.length || 0,
-                passwordsMatch: hashedPassword === user.adm_password,
-                hashedInput: hashedPassword,
-                storedPassword: user.adm_password,
-                salt1: process.env.SALT1 || 'NOT SET',
-                salt2: process.env.SALT2 || 'NOT SET'
-            })
 
             if (hashedPassword !== user.adm_password) {
                 await loginTries(sanitizedUsername, ipAddress)
@@ -158,7 +134,6 @@ export async function loginUser(credentials: {
                 ip: ipAddress,
                 lastlogin: currentTime
             }
-
             return {
                 success: true,
                 user: payload,
@@ -226,7 +201,7 @@ export async function getUserAccount(adminid: number) {
         console.log("sessionData:", sessionData)
         console.log("formattedUser:", formattedUser)
         console.log("balance:", balance)
-        
+
         return {
             success: true,
             user: formattedUser,

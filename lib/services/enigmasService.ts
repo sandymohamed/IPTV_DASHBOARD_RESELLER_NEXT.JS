@@ -58,3 +58,30 @@ export const deleteEnigma = async (id: string) => {
     throw error.response?.data || error;
   }
 };
+
+export const renewEnigma = async (id: string) => {
+  try {
+    const response = await axiosInstance.post(`/enigmas/renew/${id}`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};
+
+export const lockUnlockEnigma = async (id: string) => {
+  try {
+    const response = await axiosInstance.post(`/enigmas/lock_unlock/${id}`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};
+
+export const killEnigmaConnections = async (id: string) => {
+  try {
+    const response = await axiosInstance.post(`/enigmas/kill/${id}`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};

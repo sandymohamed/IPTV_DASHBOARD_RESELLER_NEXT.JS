@@ -26,7 +26,7 @@ export default async function UserListPage({
       is_trial: searchParams.is_trial ? parseInt(searchParams.is_trial as string) : undefined
     });
     
-    console.log("data from direct function call", usersData);
+    // console.log("data from direct function call", usersData);
     initialUsers = usersData.rows || [];
     totalCount = usersData.total || 0;
     

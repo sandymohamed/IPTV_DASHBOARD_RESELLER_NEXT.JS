@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       ipAddress: Array.isArray(ipAddress) ? ipAddress[0] : ipAddress
     })
 
-    console.log("111111 result:", result) 
+    console.log('🔵 [LOGIN ROUTE] Result:', result)
     if (result.success) {
       if (result.resetRequired) {
         return NextResponse.json({
@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
         )
       }
       const token = jwt.sign(result.user, JWT_SECRET, { expiresIn: "24h" })
+      
 
       console.log("result.session:", result)
       

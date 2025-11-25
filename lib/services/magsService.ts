@@ -61,3 +61,30 @@ export const deleteMag = async (axiosInstance: AxiosInstance, id: string) => {
     throw error.response?.data || error;
   }
 };
+
+export const renewMag = async (axiosInstance: AxiosInstance, id: string) => {
+  try {
+    const response = await axiosInstance.post(`/mags/renew/${id}`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};
+
+export const lockUnlockMag = async (axiosInstance: AxiosInstance, id: string) => {
+  try {
+    const response = await axiosInstance.post(`/mags/lock_unlock/${id}`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};
+
+export const killMagConnections = async (axiosInstance: AxiosInstance, id: string) => {
+  try {
+    const response = await axiosInstance.post(`/mags/kill/${id}`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};
