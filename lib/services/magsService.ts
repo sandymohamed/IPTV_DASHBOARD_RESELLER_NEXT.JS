@@ -1,4 +1,4 @@
-import { AxiosInstance } from 'axios';
+import axiosInstance from '@/lib/utils/axios';
 
 export interface Mag {
   id: string;
@@ -9,10 +9,7 @@ export interface Mag {
   [key: string]: any;
 }
 
-export const getMags = async (
-  axiosInstance: AxiosInstance,
-  params?: { page?: number; pageSize?: number; searchTerm?: any }
-): Promise<{ data: Mag[]; total?: number }> => {
+export const getMags = async (params?: { page?: number; pageSize?: number; searchTerm?: any }): Promise<{ data: Mag[]; total?: number }> => {
   try {
     const { page = 1, pageSize = 10, searchTerm = {} } = params || {};
     const response = await axiosInstance.post('/mags/page', { page, pageSize, searchTerm });
@@ -26,7 +23,7 @@ export const getMags = async (
   }
 };
 
-export const getMagById = async (axiosInstance: AxiosInstance, id: string) => {
+export const getMagById = async (id: string) => {
   try {
     const response = await axiosInstance.get(`/mags/${id}`);
     return response.data.result || response.data;
@@ -35,7 +32,7 @@ export const getMagById = async (axiosInstance: AxiosInstance, id: string) => {
   }
 };
 
-export const createMag = async (axiosInstance: AxiosInstance, data: any) => {
+export const createMag = async (data: any) => {
   try {
     const response = await axiosInstance.post('/mags/', data);
     return response.data;
@@ -44,7 +41,7 @@ export const createMag = async (axiosInstance: AxiosInstance, data: any) => {
   }
 };
 
-export const updateMag = async (axiosInstance: AxiosInstance, id: string, data: any) => {
+export const updateMag = async (id: string, data: any) => {
   try {
     const response = await axiosInstance.put(`/mags/${id}`, data);
     return response.data;
@@ -53,7 +50,7 @@ export const updateMag = async (axiosInstance: AxiosInstance, id: string, data: 
   }
 };
 
-export const deleteMag = async (axiosInstance: AxiosInstance, id: string) => {
+export const deleteMag = async (id: string) => {
   try {
     const response = await axiosInstance.delete(`/mags/${id}`);
     return response.data;
@@ -62,27 +59,36 @@ export const deleteMag = async (axiosInstance: AxiosInstance, id: string) => {
   }
 };
 
-export const renewMag = async (axiosInstance: AxiosInstance, id: string) => {
+export const renewMag = async (id: string, data: any) => {
   try {
-    const response = await axiosInstance.post(`/mags/renew/${id}`);
+    const response = await axiosInstance.put(`/mags/renew/${id}`, data);
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error;
   }
 };
 
-export const lockUnlockMag = async (axiosInstance: AxiosInstance, id: string) => {
+export const enableDisableMag = async (id: string) => {
   try {
-    const response = await axiosInstance.post(`/mags/lock_unlock/${id}`);
+    const response = await axiosInstance.post(`/mags/enable_disable/${id}`, {});
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error;
   }
 };
 
-export const killMagConnections = async (axiosInstance: AxiosInstance, id: string) => {
+export const lockUnlockMag = async (id: string) => {
   try {
-    const response = await axiosInstance.post(`/mags/kill/${id}`);
+    const response = await axiosInstance.post(`/mags/lock_unlock/${id}`, {});
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};
+
+export const killMagConnections = async (id: string) => {
+  try {
+    const response = await axiosInstance.post(`/mags/kill/${id}`, {});
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error;

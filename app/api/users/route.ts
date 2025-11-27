@@ -191,24 +191,18 @@ async function executeUsersQuery(params: {
       ${having}
       ORDER BY user.id DESC
     `
-    // Get total count
-    const countResult: any = await db.query(`SELECT COUNT(*) AS user_count FROM (${query}) AS subquery`)
+    // Execute queries in parallel for better performance
+    const [countResult, rowsResult, main_server] = await Promise.all([
+      db.query(`SELECT COUNT(*) AS user_count FROM (${query}) AS subquery`),
+      db.query(query + ` LIMIT ${offset}, ${pageSize}`),
+      import('@/lib/cache/streamingServersCache').then(m => m.getStreamingServer())
+    ])
 
     // ✅ CORRECT: Access the first element of the array
-    const totalCount = countResult[0]?.user_count
+    const totalCount = Array.isArray(countResult) ? (countResult as any)[0]?.user_count || 0 : 0
+    const rows = Array.isArray(rowsResult) ? rowsResult as any[] : [];
 
-    // Get paginated data
-    // const [rows]: any = await db.query(query + ` LIMIT ${offset}, ${pageSize}`)
-
-    const rowsResult: any = await db.query(query + ` LIMIT ${offset}, ${pageSize}`)
-    const rows = rowsResult;
-
-
-    // Get streaming servers for download links
-    const streaming_servers: any = await db.query(`SELECT * FROM streaming_servers ORDER BY id ASC LIMIT 1`)
-
-    if (streaming_servers && streaming_servers.length > 0) {
-      const main_server = streaming_servers[0]
+    if (main_server) {
       const http_broadcast_port = main_server.http_broadcast_port || 80
 
       for (const row of rows) {

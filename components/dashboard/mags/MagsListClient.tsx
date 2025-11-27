@@ -48,13 +48,13 @@ import TvIcon from '@mui/icons-material/Tv';
 import AndroidIcon from '@mui/icons-material/Android';
 import Menu from '@mui/material/Menu';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import * as yup from 'yup';
-import { yupResolver } from '@hookform/resolvers/yup';
-import { updateMag, deleteMag, getMagById, renewMag, lockUnlockMag, killMagConnections } from '@/lib/services/magsService';
-import { useApiClient } from '@/lib/hooks/useApiClient';
+import { deleteMag, enableDisableMag, lockUnlockMag, killMagConnections } from '@/lib/services/magsService';
 import { showToast } from '@/lib/utils/toast';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
+import ElapsedTimeCounter from '@/components/dashboard/user/ElapsedTimeCounter';
+import { useSpliceLongText } from '@/components/hooks/useSpliceLongText';
+import Label from '@/components/Label';
+import { fTimestamp, fDateTimes, fToNow } from '@/lib/utils/formatTime';
 
 interface Column {
   id: string;
@@ -84,26 +84,115 @@ const columns: readonly Column[] = [
     label: 'Expire',
     minWidth: 120,
     align: 'center',
-    format: (value: string | number) => {
+    format: (value: string | number, row: any) => {
       if (!value) return 'N/A';
       try {
-        const date = typeof value === 'number' ? new Date(value) : new Date(value);
-        return date.toLocaleDateString();
+        const dateValue = typeof value === 'number' && value < 10000000000 ? new Date(value * 1000) : new Date(value);
+        return (
+          <Box>
+            {fDateTimes(dateValue)}
+            {value && (
+              <Label
+                variant="ghost"
+                sx={{
+                  backgroundColor: '#d6dbdb',
+                  padding: '4px',
+                  height: '17px',
+                  display: 'block',
+                  mt: 0.5,
+                }}
+              >
+                <small>{fToNow(dateValue)}</small>
+              </Label>
+            )}
+          </Box>
+        );
       } catch {
         return value;
       }
     },
   },
   {
-    id: 'enabled',
+    id: 'status',
     label: 'Status',
-    minWidth: 100,
+    minWidth: 120,
     align: 'center',
-    format: (value: number) => (
-      <Chip size="small" label={value === 1 ? 'Active' : 'Inactive'} color={value === 1 ? 'success' : 'error'} />
-    ),
+    format: (value: number, row: any) => {
+      const { is_trial, exp_date, admin_enabled, enabled } = row;
+      const expDateTimestamp = exp_date ? fTimestamp(typeof exp_date === 'number' && exp_date < 10000000000 ? exp_date * 1000 : exp_date) : 0;
+      const nowTimestamp = fTimestamp(new Date());
+      const isExpired = expDateTimestamp > 0 && expDateTimestamp < nowTimestamp && exp_date !== 0 && exp_date !== null;
+      const isValid = expDateTimestamp > nowTimestamp;
+
+      return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'center' }}>
+          {is_trial === 1 && (
+            <Label
+              variant="filled"
+              color="info"
+              sx={{
+                textTransform: 'uppercase',
+                padding: '5px',
+                height: '20px',
+                fontSize: '0.7rem',
+              }}
+            >
+              Trial
+            </Label>
+          )}
+
+          {isExpired && (
+            <Label variant="filled" color="error" sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
+              Expired
+            </Label>
+          )}
+
+          {isValid && is_trial === 1 && (
+            <Label variant="filled" color="success" sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
+              Enabled
+            </Label>
+          )}
+
+          {isValid && admin_enabled === 1 && enabled === 0 && (
+            <Label variant="filled" color="warning" sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
+              Banned
+            </Label>
+          )}
+
+          {isValid && admin_enabled === 0 && enabled === 1 && (
+            <Label variant="filled" color="warning" sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
+              Locked
+            </Label>
+          )}
+
+          {isValid && admin_enabled === 0 && enabled === 0 && (
+            <Label variant="filled" color="error" sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
+              Blocked
+            </Label>
+          )}
+
+          {isValid && admin_enabled === 1 && enabled === 1 && is_trial === 0 && (
+            <Label variant="filled" color="success" sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
+              Enabled
+            </Label>
+          )}
+        </Box>
+      );
+    },
   },
-  { id: 'stream_display_name', label: 'Watching', minWidth: 100, align: 'center' },
+  {
+    id: 'watching',
+    label: 'Watching',
+    align: 'center',
+    format: (value: any, row: any) => (
+      <Typography variant="body2" color="text.secondary">
+        {row.stream_display_name}
+        {row.date_start && (
+          <ElapsedTimeCounter dateStart={row.date_start} />
+        )}
+      </Typography>
+    )
+  },
   { id: 'user_ip', label: 'IP', minWidth: 120, align: 'center' },
   {
     id: 'package_name',
@@ -112,8 +201,15 @@ const columns: readonly Column[] = [
     align: 'center',
     format: (value: any) => <Chip size="small" label={value || 'N/A'} color="secondary" variant="outlined" />,
   },
-  { id: 'reseller_notes', label: 'Notes', minWidth: 100 },
-  { id: 'max_connections', label: 'MaxCon', minWidth: 100, align: 'right' },
+  { id: 'reseller_notes', label: ' Notes', minWidth: 100, format: (value: string) => useSpliceLongText(value, 20) },
+  {
+    id: 'max_connections',
+    label: 'Conn',
+    align: 'center',
+    format: (value: number, row: any) => (
+      <Chip size="small" label={`${row.active_connections || 0} / ${row.max_connections || 0}`} color="primary" variant="outlined" />
+    ),
+  },
   { id: 'options', label: 'Options', minWidth: 140 },
 ];
 
@@ -398,10 +494,8 @@ export default function MagsListClient({ initialMags, totalCount = 0, initialErr
 
 function RowActions({ row }: { row: any }) {
   const router = useRouter();
-  const apiClient = useApiClient();
   const [busy, setBusy] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [openEdit, setOpenEdit] = useState(false);
   const [openM3U, setOpenM3U] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
   const [openConfirmEnable, setOpenConfirmEnable] = useState(false);
@@ -411,9 +505,8 @@ function RowActions({ row }: { row: any }) {
   const [openAndroid, setOpenAndroid] = useState(false);
   
   const id = row.id;
-  const status = row.enabled;
-  const enabled = status === 1;
-  const admin_enabled = row.admin_enabled !== undefined ? row.admin_enabled === 1 : true;
+  const enabled = row?.enabled;
+  const admin_enabled = row.admin_enabled;
   const download = row.download;
 
   const handleOpenPopover = (event: React.MouseEvent<HTMLElement>) => {
@@ -425,7 +518,7 @@ function RowActions({ row }: { row: any }) {
   };
 
   const handleEdit = () => {
-    setOpenEdit(true);
+    router.push(`/dashboard/mags/edit/${id}`);
     handleClosePopover();
   };
 
@@ -442,12 +535,16 @@ function RowActions({ row }: { row: any }) {
   const handleEnableDisable = async () => {
     try {
       setBusy(true);
-      await updateMag(apiClient, String(id), { status: enabled ? 0 : 1 });
-      showToast.success(enabled ? 'Device disabled successfully' : 'Device enabled successfully');
-      setOpenConfirmEnable(false);
-      router.refresh();
+      const response = await enableDisableMag(String(id));
+      if (response?.data?.success || response?.success) {
+        showToast.success('Success!');
+        setOpenConfirmEnable(false);
+        router.refresh();
+      } else {
+        showToast.error('Failed, Please try again!');
+      }
     } catch (error: any) {
-      showToast.error(error?.message || 'Failed to update device status');
+      showToast.error(error?.message || 'Failed, Please try again!');
     } finally {
       setBusy(false);
     }
@@ -456,12 +553,16 @@ function RowActions({ row }: { row: any }) {
   const handleLockUnlock = async () => {
     try {
       setBusy(true);
-      await lockUnlockMag(apiClient, String(id));
-      showToast.success(admin_enabled ? 'Device unlocked successfully' : 'Device locked successfully');
-      setOpenConfirmLock(false);
-      router.refresh();
+      const response = await lockUnlockMag(String(id));
+      if (response?.data?.success || response?.success) {
+        showToast.success('Success!');
+        setOpenConfirmLock(false);
+        router.refresh();
+      } else {
+        showToast.error('Failed, Please try again!');
+      }
     } catch (error: any) {
-      showToast.error(error?.message || 'Failed to update lock status');
+      showToast.error(error?.message || 'Failed, Please try again!');
     } finally {
       setBusy(false);
     }
@@ -470,12 +571,16 @@ function RowActions({ row }: { row: any }) {
   const handleKill = async () => {
     try {
       setBusy(true);
-      await killMagConnections(apiClient, String(id));
-      showToast.success('Device connections killed successfully');
-      setOpenConfirmKill(false);
-      router.refresh();
+      const response = await killMagConnections(String(id));
+      if (response?.data?.success || response?.success) {
+        showToast.success('Success!');
+        setOpenConfirmKill(false);
+        router.refresh();
+      } else {
+        showToast.error('Failed, Please try again!');
+      }
     } catch (error: any) {
-      showToast.error(error?.message || 'Failed to kill connections');
+      showToast.error(error?.message || 'Failed, Please try again!');
     } finally {
       setBusy(false);
     }
@@ -484,12 +589,16 @@ function RowActions({ row }: { row: any }) {
   const handleDelete = async () => {
     try {
       setBusy(true);
-      await deleteMag(apiClient, String(id));
-      showToast.success('Device deleted successfully');
-      setOpenDelete(false);
-      router.refresh();
+      const response = await deleteMag(String(id));
+      if (response?.data?.success || response?.success) {
+        showToast.success('Delete success!');
+        setOpenDelete(false);
+        router.refresh();
+      } else {
+        showToast.error('Delete failed! try again');
+      }
     } catch (error: any) {
-      showToast.error(error?.message || 'Failed to delete device');
+      showToast.error(error?.message || 'Delete failed! try again');
     } finally {
       setBusy(false);
     }
@@ -603,18 +712,6 @@ function RowActions({ row }: { row: any }) {
         </MenuItem>
       </Menu>
 
-      {openEdit && (
-        <EditMagDialog
-          open={openEdit}
-          onClose={() => setOpenEdit(false)}
-          deviceId={id}
-          onSaved={async () => {
-            setOpenEdit(false);
-            router.refresh();
-          }}
-        />
-      )}
-
       {openM3U && download && (
         <M3UDialog open={openM3U} onClose={() => setOpenM3U(false)} downloadData={download} />
       )}
@@ -625,6 +722,7 @@ function RowActions({ row }: { row: any }) {
         onConfirm={handleEnableDisable}
         title={!enabled ? 'Enable' : 'Disable'}
         message={!enabled ? 'Are you sure you want to enable this device?' : 'Are you sure you want to disable this device?'}
+        confirmText={!enabled ? 'Enable' : 'Disable'}
         itemName={row.username || row.mac || `Device #${id}`}
         loading={busy}
       />
@@ -635,6 +733,7 @@ function RowActions({ row }: { row: any }) {
         onConfirm={handleLockUnlock}
         title={!admin_enabled ? 'Unlock' : 'Lock'}
         message={!admin_enabled ? 'Are you sure you want to unlock this device?' : 'Are you sure you want to lock this device?'}
+        confirmText={!admin_enabled ? 'Unlock' : 'Lock'}
         itemName={row.username || row.mac || `Device #${id}`}
         loading={busy}
       />
@@ -645,6 +744,7 @@ function RowActions({ row }: { row: any }) {
         onConfirm={handleKill}
         title="Kill Connections"
         message="Are you sure you want to kill all active connections for this device?"
+        confirmText="Kill"
         itemName={row.username || row.mac || `Device #${id}`}
         loading={busy}
       />
@@ -683,135 +783,6 @@ function RowActions({ row }: { row: any }) {
         </Dialog>
       )}
     </>
-  );
-}
-
-type EditMagForm = {
-  userName?: string;
-  password?: string;
-  Notes?: string;
-  status?: number;
-};
-
-const editMagSchema: yup.ObjectSchema<EditMagForm> = yup
-  .object({
-    userName: yup.string().optional(),
-    password: yup.string().optional(),
-    Notes: yup.string().optional(),
-    status: yup.number().oneOf([0, 1]).optional(),
-  })
-  .required();
-
-function EditMagDialog({
-  open,
-  onClose,
-  deviceId,
-  onSaved,
-}: {
-  open: boolean;
-  onClose: () => void;
-  deviceId: string | number;
-  onSaved: () => void | Promise<void>;
-}) {
-  const apiClient = useApiClient();
-  const [loading, setLoading] = useState(false);
-  const [deviceData, setDeviceData] = useState<any>(null);
-  const {
-    register,
-    handleSubmit,
-    formState: { isSubmitting },
-    reset,
-  } = useForm<EditMagForm>({
-    resolver: yupResolver(editMagSchema),
-  });
-
-  useEffect(() => {
-    if (open && deviceId) {
-      const fetchDevice = async () => {
-        try {
-          setLoading(true);
-          const data = await getMagById(apiClient, String(deviceId));
-          setDeviceData(data);
-          reset({
-            userName: data?.username || '',
-            password: '',
-            Notes: data?.reseller_notes || '',
-            status: data?.enabled ?? 1,
-          });
-        } catch (error) {
-          console.error('Failed to fetch device:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchDevice();
-    } else if (!open) {
-      // Reset form when dialog closes
-      reset({
-        userName: '',
-        password: '',
-        Notes: '',
-        status: 1,
-      });
-      setDeviceData(null);
-    }
-  }, [open, deviceId, reset, apiClient]);
-
-  const onSubmit = async (data: EditMagForm) => {
-    if (!deviceId) return;
-    try {
-      await updateMag(apiClient, String(deviceId), data);
-      showToast.success('Device updated successfully');
-      await onSaved();
-    } catch (error: any) {
-      showToast.error(error?.message || 'Failed to update device');
-    }
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Edit MAG</DialogTitle>
-      <DialogContent sx={{ pt: 2 }}>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-            <CircularProgress size={24} />
-          </Box>
-        ) : (
-          <MuiStack spacing={2}>
-            <TextField label="User Name" {...register('userName')} fullWidth />
-            <TextField
-              label="Password"
-              type="password"
-              {...register('password')}
-              fullWidth
-              placeholder="Leave empty to keep current"
-            />
-            <TextField
-              label="Notes"
-              {...register('Notes')}
-              fullWidth
-              multiline
-              rows={3}
-            />
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select label="Status" {...(register('status') as any)}>
-                <MenuItem value={1}>Active</MenuItem>
-                <MenuItem value={0}>Inactive</MenuItem>
-              </Select>
-            </FormControl>
-          </MuiStack>
-        )}
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={isSubmitting || loading}>
-          Cancel
-        </Button>
-        <Button onClick={handleSubmit(onSubmit)} variant="contained" disabled={isSubmitting || loading}>
-          Save
-        </Button>
-      </DialogActions>
-    </Dialog>
   );
 }
 

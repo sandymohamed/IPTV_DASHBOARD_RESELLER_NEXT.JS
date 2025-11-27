@@ -2,6 +2,7 @@
 import { db } from '@/lib/db';
 import { getServerSession } from '@/lib/auth/auth';
 import { downloadlist } from '@/lib/utils/downloadlist';
+import { withQueryCache, createCacheKey } from '@/lib/cache/queryCache';
 
 // This runs on the server - has access to your existing logic
 export async function getMagsList(params: {
@@ -20,11 +21,48 @@ export async function getMagsList(params: {
     } = params
 
     const offset = (page - 1) * pageSize
+    
+    // Check session first (required for permission checks)
     const session = await getServerSession();
 
     if (!session?.user) {
         throw new Error('Not authenticated')
     }
+
+    // Create cache key including user ID (since permissions differ per user)
+    const cacheKey = createCacheKey('mags-list', {
+        userId: session.user.id,
+        page,
+        pageSize,
+        searchTerm,
+        active_connections,
+        is_trial,
+    });
+
+    // Use request-level cache (prevents duplicate queries in same request)
+    return withQueryCache(cacheKey, async () => {
+        return executeMagsQuery({
+            session,
+            page,
+            pageSize,
+            offset,
+            searchTerm,
+            active_connections,
+            is_trial,
+        });
+    });
+}
+
+async function executeMagsQuery(params: {
+    session: any
+    page: number
+    pageSize: number
+    offset: number
+    searchTerm: string
+    active_connections: number | null
+    is_trial: number | null
+}) {
+    const { session, searchTerm, active_connections, is_trial, offset, pageSize, page } = params;
 
     try {
         let condition = ""
@@ -84,23 +122,19 @@ export async function getMagsList(params: {
             ORDER BY users.id DESC
         `
 
-        // Get total count
-        const countResult: any = await db.query(
-            `SELECT COUNT(*) AS user_count FROM (${magQuery}) AS subquery`
-        )
-        const totalCount = countResult[0]?.user_count || 0
-
-        // Get paginated data
-        const rowsResult: any = await db.query(magQuery + ` LIMIT ${offset}, ${pageSize}`)
-        const rows = rowsResult || []
-
-        // Get streaming servers for download links
-        const servers: any = await db.query(`SELECT * FROM streaming_servers ORDER BY id ASC LIMIT 1`)
+        // Execute count and data queries in parallel for better performance
+        const [countResult, rowsResult, main_server] = await Promise.all([
+            db.query(`SELECT COUNT(*) AS user_count FROM (${magQuery}) AS subquery`),
+            db.query(magQuery + ` LIMIT ${offset}, ${pageSize}`),
+            import('@/lib/cache/streamingServersCache').then(m => m.getStreamingServer())
+        ])
+        
+        const totalCount = Array.isArray(countResult) ? (countResult as any)[0]?.user_count || 0 : 0
+        const rows = Array.isArray(rowsResult) ? rowsResult as any[] : []
 
 
 
-        if (servers && servers.length > 0) {
-            const main_server = servers[0]
+        if (main_server) {
             let http_broadcast_port = 80
             if (main_server.http_broadcast_port) {
                 http_broadcast_port = main_server.http_broadcast_port
@@ -149,7 +183,7 @@ export async function getMagsList(params: {
             pageSize
         }
     } catch (error) {
-        console.error('Error in getMagsList:', error)
+        console.error('Error in executeMagsQuery:', error)
         throw error
     }
 }

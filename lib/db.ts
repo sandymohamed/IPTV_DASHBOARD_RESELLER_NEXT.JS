@@ -27,53 +27,67 @@
 // lib/db.ts
 import mysql from 'mysql2/promise'
 
-// Database connection pool for better performance
-let pool: mysql.Pool | null = null
+// Use global to persist pool across module boundaries (Next.js hot reload)
+declare global {
+  var __dbPool: mysql.Pool | undefined;
+  var __dbPoolInitialized: boolean | undefined;
+}
 
-function createPool() {
-  if (!pool) {
-    const dbConfig = {
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 7999,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-      // Performance optimizations
-      enableKeepAlive: true,
-      keepAliveInitialDelay: 0,
-    }
-    
-    // Only log on first pool creation (not on every request)
+// Database connection pool for better performance
+function createPool(): mysql.Pool {
+  // Use global pool if available (survives Next.js hot reloads)
+  if (global.__dbPool) {
+    return global.__dbPool;
+  }
+
+  const dbConfig = {
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 7999,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    // Performance optimizations
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0,
+    acquireTimeout: 60000,
+    timeout: 60000,
+  }
+  
+  // Only log once on first pool creation
+  if (!global.__dbPoolInitialized) {
     if (process.env.NODE_ENV === 'development') {
       console.log('🔌 Initializing database connection pool:', {
         host: dbConfig.host,
         database: dbConfig.database,
       })
     }
-    
-    pool = mysql.createPool(dbConfig)
-    
-    // Test the connection once on pool creation
-    pool.getConnection()
-      .then((connection) => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ Database connection pool initialized successfully!')
-        }
-        connection.release()
-      })
-      .catch((error) => {
-        console.error('❌ Database connection failed:', {
-          code: error.code,
-          message: error.message,
-          host: dbConfig.host,
-          database: dbConfig.database
-        })
-      })
+    global.__dbPoolInitialized = true;
   }
-  return pool
+  
+  const pool = mysql.createPool(dbConfig)
+  global.__dbPool = pool;
+  
+  // Test the connection once on pool creation (non-blocking)
+  pool.getConnection()
+    .then((connection) => {
+      if (process.env.NODE_ENV === 'development' && global.__dbPoolInitialized) {
+        console.log('✅ Database connection pool initialized successfully!')
+      }
+      connection.release()
+    })
+    .catch((error) => {
+      console.error('❌ Database connection failed:', {
+        code: error.code,
+        message: error.message,
+        host: dbConfig.host,
+        database: dbConfig.database
+      })
+    })
+
+  return pool;
 }
 
 export async function getDbConnection(): Promise<mysql.PoolConnection> {

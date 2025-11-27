@@ -59,9 +59,18 @@ export const deleteEnigma = async (id: string) => {
   }
 };
 
-export const renewEnigma = async (id: string) => {
+export const renewEnigma = async (id: string, data: any) => {
   try {
-    const response = await axiosInstance.post(`/enigmas/renew/${id}`);
+    const response = await axiosInstance.put(`/enigmas/renew/${id}`, data);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};
+
+export const enableDisableEnigma = async (id: string) => {
+  try {
+    const response = await axiosInstance.post(`/enigmas/enable_disable/${id}`, {});
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error;
@@ -70,7 +79,7 @@ export const renewEnigma = async (id: string) => {
 
 export const lockUnlockEnigma = async (id: string) => {
   try {
-    const response = await axiosInstance.post(`/enigmas/lock_unlock/${id}`);
+    const response = await axiosInstance.post(`/enigmas/lock_unlock/${id}`, {});
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error;
@@ -79,7 +88,7 @@ export const lockUnlockEnigma = async (id: string) => {
 
 export const killEnigmaConnections = async (id: string) => {
   try {
-    const response = await axiosInstance.post(`/enigmas/kill/${id}`);
+    const response = await axiosInstance.post(`/enigmas/kill/${id}`, {});
     return response.data;
   } catch (error: any) {
     throw error.response?.data || error;
