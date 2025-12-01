@@ -448,7 +448,7 @@ export default function LoginPage() {
               {/* Sign Up Link */}
               <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
                 <Typography variant="body2" color="text.secondary">
-                  Don't have an account?
+                  Don&apos;t have an account?
                 </Typography>
                 <Link
                   href="#"

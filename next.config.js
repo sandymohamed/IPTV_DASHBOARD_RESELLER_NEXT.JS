@@ -14,12 +14,12 @@ const nextConfig = {
       },
     },
   },
-  // Optimize dev server
+  // Optimize dev server - keep pages in memory longer to reduce recompilation
   onDemandEntries: {
     // Period (in ms) where the server will keep pages in the buffer
-    maxInactiveAge: 25 * 1000,
+    maxInactiveAge: 60 * 1000, // Increased from 25s to 60s
     // Number of pages that should be kept simultaneously without being disposed
-    pagesBufferLength: 2,
+    pagesBufferLength: 5, // Increased from 2 to 5
   },
   // Optimize bundle splitting
   webpack: (config, { isServer }) => {

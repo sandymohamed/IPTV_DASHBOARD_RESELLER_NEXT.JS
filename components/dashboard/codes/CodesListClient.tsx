@@ -19,15 +19,23 @@ import {
   TextField,
   IconButton,
   InputAdornment,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import {
   usePathname,
   useRouter,
   useSearchParams,
 } from 'next/navigation';
+import { deleteCode } from '@/lib/services/codesService';
+import { showToast } from '@/lib/utils/toast';
+import DeleteConfirmation from '@/components/DeleteConfirmation';
 
 interface CodesListClientProps {
   initialData: any[];
@@ -381,7 +389,7 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
                       if (column.id === 'options') {
                         return (
                           <TableCell key={column.id} align={column.align || 'left'} sx={{ whiteSpace: 'nowrap' }}>
-                            {/* Options can be added here */}
+                            <RowActions row={row} />
                           </TableCell>
                         );
                       }
@@ -425,5 +433,93 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
         />
       </Paper>
     </Box>
+  );
+}
+
+function RowActions({ row }: { row: any }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [openDelete, setOpenDelete] = useState(false);
+
+  const id = row.trans_id || row.id;
+
+  const handleOpenPopover = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClosePopover = () => {
+    setAnchorEl(null);
+  };
+
+  const handleEdit = () => {
+    router.push(`/dashboard/codes/edit/${id}`);
+    handleClosePopover();
+  };
+
+  const handleDelete = async () => {
+    try {
+      setBusy(true);
+      const response = await deleteCode(String(id));
+      if (response?.success || response?.data?.success) {
+        showToast.success('Delete success!');
+        setOpenDelete(false);
+        router.refresh();
+      } else {
+        showToast.error('Delete failed! try again');
+      }
+    } catch (error: any) {
+      showToast.error(error?.message || 'Delete failed! try again');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <IconButton onClick={handleOpenPopover} disabled={busy}>
+        <MoreVertIcon />
+      </IconButton>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleClosePopover}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+      >
+        <MenuItem onClick={handleEdit}>
+          <EditIcon sx={{ mr: 1, fontSize: 20 }} />
+          Edit
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            setOpenDelete(true);
+            handleClosePopover();
+          }}
+          sx={{ color: 'error.main' }}
+        >
+          <DeleteIcon sx={{ mr: 1, fontSize: 20 }} />
+          Delete
+        </MenuItem>
+      </Menu>
+
+      <DeleteConfirmation
+        open={openDelete}
+        onClose={() => setOpenDelete(false)}
+        onConfirm={handleDelete}
+        title="Delete Code Transaction"
+        message="Are you sure you want to delete this code transaction? This action cannot be undone and will permanently remove the transaction and all associated codes."
+        itemName={row.trans_name || `Transaction #${id}`}
+        loading={busy}
+      />
+    </>
   );
 }

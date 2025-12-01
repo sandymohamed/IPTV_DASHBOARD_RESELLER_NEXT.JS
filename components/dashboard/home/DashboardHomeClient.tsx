@@ -154,7 +154,7 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
           Welcome back, {user?.adm_username || user?.name || 'User'}! 👋
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Here's an overview of your IPTV dashboard
+          Here&apos;s an overview of your IPTV dashboard
         </Typography>
       </Box>
 

@@ -511,7 +511,7 @@ export default function UserCreateForm({ packages, templates = [] }: UserCreateF
                         <FormHelperText>{errors.template_id.message}</FormHelperText>
                       )}
                       <FormHelperText>
-                        Select a template to use predefined bouquets, or leave as "None" to select custom bouquets below
+                        Select a template to use predefined bouquets, or leave as &quot;None&quot; to select custom bouquets below
                       </FormHelperText>
                     </FormControl>
                   )}

@@ -52,7 +52,7 @@ import { deleteEnigma, enableDisableEnigma, lockUnlockEnigma, killEnigmaConnecti
 import { showToast } from '@/lib/utils/toast';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
 import ElapsedTimeCounter from '@/components/dashboard/user/ElapsedTimeCounter';
-import { useSpliceLongText } from '@/components/hooks/useSpliceLongText';
+import { spliceLongText } from '@/components/hooks/useSpliceLongText';
 import Label from '@/components/Label';
 import { fTimestamp, fDateTimes, fToNow } from '@/lib/utils/formatTime';
 
@@ -201,7 +201,7 @@ const columns: readonly Column[] = [
     align: 'center',
     format: (value: any) => <Chip size="small" label={value || 'N/A'} color="secondary" variant="outlined" />,
   },
-  { id: 'reseller_notes', label: ' Notes', minWidth: 100, format: (value: string) => useSpliceLongText(value, 20) },
+  { id: 'reseller_notes', label: ' Notes', minWidth: 100, format: (value: string) => spliceLongText(value, 20) },
   {
     id: 'max_connections',
     label: 'Conn',
@@ -300,7 +300,7 @@ export default function EnigmasListClient({ initialEnigmas, totalCount = 0, init
             </Typography>
           )}
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => router.push('/dashboard/enigmas/create')}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => router.push('/dashboard/enigmas/new')}>
           Create Enigma
         </Button>
       </Box>

@@ -52,7 +52,7 @@ import { deleteMag, enableDisableMag, lockUnlockMag, killMagConnections } from '
 import { showToast } from '@/lib/utils/toast';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
 import ElapsedTimeCounter from '@/components/dashboard/user/ElapsedTimeCounter';
-import { useSpliceLongText } from '@/components/hooks/useSpliceLongText';
+import { spliceLongText } from '@/components/hooks/useSpliceLongText';
 import Label from '@/components/Label';
 import { fTimestamp, fDateTimes, fToNow } from '@/lib/utils/formatTime';
 
@@ -201,7 +201,7 @@ const columns: readonly Column[] = [
     align: 'center',
     format: (value: any) => <Chip size="small" label={value || 'N/A'} color="secondary" variant="outlined" />,
   },
-  { id: 'reseller_notes', label: ' Notes', minWidth: 100, format: (value: string) => useSpliceLongText(value, 20) },
+  { id: 'reseller_notes', label: ' Notes', minWidth: 100, format: (value: string) => spliceLongText(value, 20) },
   {
     id: 'max_connections',
     label: 'Conn',
@@ -220,6 +220,7 @@ interface MagsListClientProps {
 }
 
 export default function MagsListClient({ initialMags, totalCount = 0, initialError = null }: MagsListClientProps) {
+  console.log("from mags list client")
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -300,7 +301,7 @@ export default function MagsListClient({ initialMags, totalCount = 0, initialErr
             </Typography>
           )}
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => router.push('/dashboard/mags/create')}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => router.push('/dashboard/mags/new')}>
           Create Mag
         </Button>
       </Box>

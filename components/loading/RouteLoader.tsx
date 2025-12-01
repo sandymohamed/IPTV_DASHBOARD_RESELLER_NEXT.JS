@@ -12,22 +12,35 @@ export default function RouteLoader() {
 
   // Track navigation start via link clicks and custom events
   useEffect(() => {
+
+    console.log("from RouteLoader")
+
     let progressInterval: NodeJS.Timeout | null = null;
+    let startTimeout: NodeJS.Timeout | null = null;
 
     const startLoading = () => {
-      setLoading(true);
-      setProgress(0);
-      
-      // Simulate progress
-      progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 85) return 85;
-          return prev + Math.random() * 8;
-        });
-      }, 100);
+      // Delay showing loader for fast navigations (< 200ms)
+      startTimeout = setTimeout(() => {
+        setLoading(true);
+        setProgress(0);
+        
+        // Simulate progress
+        progressInterval = setInterval(() => {
+          setProgress((prev) => {
+            if (prev >= 85) return 85;
+            return prev + Math.random() * 8;
+          });
+        }, 100);
+      }, 200);
     };
 
     const stopLoading = () => {
+      // Clear delayed start if navigation completed quickly
+      if (startTimeout) {
+        clearTimeout(startTimeout);
+        startTimeout = null;
+      }
+      
       if (progressInterval) {
         clearInterval(progressInterval);
         progressInterval = null;
@@ -36,7 +49,7 @@ export default function RouteLoader() {
       setTimeout(() => {
         setLoading(false);
         setProgress(0);
-      }, 300);
+      }, 200); // Reduced from 300ms
     };
 
     const handleClick = (e: MouseEvent) => {
@@ -65,6 +78,9 @@ export default function RouteLoader() {
       window.removeEventListener('navigation-start', handleNavigationStart);
       if (progressInterval) {
         clearInterval(progressInterval);
+      }
+      if (startTimeout) {
+        clearTimeout(startTimeout);
       }
     };
   }, [pathname]);
@@ -113,17 +129,7 @@ export default function RouteLoader() {
         />
       </Box>
 
-      {/* Subtle backdrop overlay */}
-      <Backdrop
-        open={true}
-        sx={{
-          position: 'fixed',
-          zIndex: 12000,
-          backgroundColor: 'rgba(0, 0, 0, 0.02)',
-          backdropFilter: 'blur(1px)',
-          pointerEvents: 'none',
-        }}
-      />
+      {/* Subtle backdrop overlay - removed to reduce perceived lag */}
     </>
   );
 }

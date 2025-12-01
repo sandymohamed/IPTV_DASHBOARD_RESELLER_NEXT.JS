@@ -155,7 +155,7 @@ export default function UserEditForm({ currentUser, packages = [], templates = [
   const defaultValues = useMemo(
     () => ({
       username: currentUser?.username || '',
-      password: '',
+      password: currentUser?.password ||'',
       forced_country: currentUser?.forced_country || 'ALL',
       reseller_notes: currentUser?.reseller_notes || '',
       template_id: currentUser?.template_id?.toString() || '',
@@ -403,8 +403,7 @@ export default function UserEditForm({ currentUser, packages = [], templates = [
                     render={({ field }) => (
                       <TextField
                         {...field}
-                        label="Password (Leave blank to keep current)"
-                        type="password"
+                        label="Password"
                         fullWidth
                         error={!!errors.password}
                         helperText={errors.password?.message}

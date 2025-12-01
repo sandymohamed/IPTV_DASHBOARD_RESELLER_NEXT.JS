@@ -58,7 +58,7 @@ import {
 import { showToast } from '@/lib/utils/toast';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
 import ElapsedTimeCounter from './ElapsedTimeCounter';
-import { useSpliceLongText } from '@/components/hooks/useSpliceLongText';
+import { spliceLongText } from '@/components/hooks/useSpliceLongText';
 import Label from '@/components/Label';
 import { fTimestamp } from '@/lib/utils/formatTime';
 
@@ -208,7 +208,7 @@ const columns: readonly Column[] = [
     align: 'center',
     format: (value: any) => <Chip size="small" label={value || 'N/A'} color="secondary" variant="outlined" />,
   },
-  { id: 'reseller_notes', label: ' Notes', minWidth: 100, format: (value: string) => useSpliceLongText(value, 20) },
+  { id: 'reseller_notes', label: ' Notes', minWidth: 100, format: (value: string) => spliceLongText(value, 20) },
 
   { id: 'options', label: 'Options', minWidth: 140 },
 ];

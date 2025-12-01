@@ -12,6 +12,7 @@ export async function getMagsList(params: {
     active_connections?: number
     is_trial?: number
 }) {
+    console.log("from getMagsList")
     const {
         page = 1,
         pageSize = 10,
@@ -62,6 +63,7 @@ async function executeMagsQuery(params: {
     active_connections: number | null
     is_trial: number | null
 }) {
+    console.log("from executeMagsQuery")
     const { session, searchTerm, active_connections, is_trial, offset, pageSize, page } = params;
 
     try {

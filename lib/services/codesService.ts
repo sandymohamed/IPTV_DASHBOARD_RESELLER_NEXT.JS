@@ -49,3 +49,12 @@ export const updateCode = async (id: string, data: any) => {
     throw error.response?.data || error;
   }
 };
+
+export const deleteCode = async (id: string) => {
+  try {
+    const response = await axiosInstance.delete(`/codes/${id}`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};

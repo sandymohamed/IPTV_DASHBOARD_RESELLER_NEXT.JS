@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { getServerSession } from '@/lib/auth/auth';
 import { downloadlist } from '@/lib/utils/downloadlist';
 import { withQueryCache, createCacheKey } from '@/lib/cache/queryCache';
+import { getStreamingServer } from '@/lib/cache/streamingServersCache';
 
 
 // This runs on the server - has access to your existing logic
@@ -195,7 +196,7 @@ async function executeUsersQuery(params: {
     const [countResult, rowsResult, main_server] = await Promise.all([
       db.query(`SELECT COUNT(*) AS user_count FROM (${query}) AS subquery`),
       db.query(query + ` LIMIT ${offset}, ${pageSize}`),
-      import('@/lib/cache/streamingServersCache').then(m => m.getStreamingServer())
+      getStreamingServer().catch(() => null) // Gracefully handle errors
     ])
 
     // ✅ CORRECT: Access the first element of the array
