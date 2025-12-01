@@ -55,6 +55,7 @@ import {
   lockUnlockUser,
   killUserConnections
 } from '@/lib/services/userService';
+import { createDevice, createAndroidDevice } from '@/lib/services/deviceService';
 import { showToast } from '@/lib/utils/toast';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
 import ElapsedTimeCounter from './ElapsedTimeCounter';
@@ -763,34 +764,198 @@ function RowActions({ row }: { row: any }) {
         loading={busy}
       />
 
-      {/* TODO: Add Upload To Smart TV and Android dialogs */}
-      {openTV && (
-        <Dialog open={openTV} onClose={() => setOpenTV(false)}>
-          <DialogTitle>Upload To Smart TV</DialogTitle>
-          <DialogContent>
-            <Typography>Smart TV upload functionality coming soon...</Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenTV(false)}>Close</Button>
-          </DialogActions>
-        </Dialog>
+      {openTV && download && (
+        <TVAndroidDialog
+          open={openTV}
+          onClose={() => setOpenTV(false)}
+          downloadData={download}
+          row={row}
+          android={false}
+        />
       )}
 
-      {openAndroid && (
-        <Dialog open={openAndroid} onClose={() => setOpenAndroid(false)}>
-          <DialogTitle>Upload To Android</DialogTitle>
-          <DialogContent>
-            <Typography>Android upload functionality coming soon...</Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenAndroid(false)}>Close</Button>
-          </DialogActions>
-        </Dialog>
+      {openAndroid && download && (
+        <TVAndroidDialog
+          open={openAndroid}
+          onClose={() => setOpenAndroid(false)}
+          downloadData={download}
+          row={row}
+          android={true}
+        />
       )}
     </>
   );
 }
 
+interface TVAndroidDialogProps {
+  open: boolean;
+  onClose: () => void;
+  downloadData: any[];
+  row: any;
+  android?: boolean;
+}
+
+function TVAndroidDialog({ open, onClose, downloadData, row, android = false }: TVAndroidDialogProps) {
+  const [outputFormat, setOutputFormat] = useState('');
+  const [link, setLink] = useState('');
+  const [mac, setMac] = useState('');
+  const [playlistName, setPlaylistName] = useState('');
+  const [macError, setMacError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (downloadData && downloadData.length > 0) {
+      const firstLink = downloadData[0].download;
+      setOutputFormat(firstLink);
+      setLink(firstLink);
+    }
+  }, [downloadData]);
+
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setMac('');
+      setPlaylistName('');
+      setMacError('');
+      setSubmitting(false);
+      if (downloadData && downloadData.length > 0) {
+        const firstLink = downloadData[0].download;
+        setOutputFormat(firstLink);
+        setLink(firstLink);
+      }
+    }
+  }, [open, downloadData]);
+
+  const handleChange = (event: SelectChangeEvent<string>) => {
+    const selectedValue = event.target.value;
+    setOutputFormat(selectedValue);
+    setLink(selectedValue);
+  };
+
+  const handleMacChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    if (!value) {
+      setMacError('MAC address is required');
+    } else {
+      setMacError('');
+    }
+    const cleaned = value.replace(/[^0-9A-Fa-f]/g, '');
+    const formatted = cleaned.replace(/(.{2})(?=.)/g, '$1:');
+    setMac(formatted.slice(0, 23));
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    
+    if (!mac) {
+      setMacError('MAC address is required');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      
+      if (!android) {
+        const formData = {
+          mac,
+          playlist_name: playlistName,
+          playlist_url: link,
+          exp_date: row.exp_date || 0,
+        };
+        
+        const res = await createDevice(formData);
+        
+        if (res?.data?.success) {
+          showToast.success('Created successfully');
+          setMac('');
+          setPlaylistName('');
+          setMacError('');
+          onClose();
+        } else {
+          showToast.error('Unable to add device');
+        }
+      } else {
+        const androidData = {
+          mac,
+          name: playlistName,
+          m3u: link,
+        };
+        
+        const res = await createAndroidDevice(androidData);
+        
+        if (res) {
+          showToast.success('Created successfully');
+          setMac('');
+          setPlaylistName('');
+          setMacError('');
+          onClose();
+        } else {
+          showToast.error('Unable to add device');
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to create device:', error);
+      showToast.error(error?.response?.data?.message || 'Unable to add device');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>{android ? 'Android APP' : 'TV App'}</DialogTitle>
+      <DialogContent sx={{ pt: 2 }}>
+        <MuiStack spacing={2} component="form" onSubmit={handleSubmit}>
+          <TextField
+            value={playlistName}
+            label="Playlist Name"
+            fullWidth
+            onChange={(e) => setPlaylistName(e.target.value)}
+          />
+
+          <FormControl fullWidth>
+            <InputLabel>Select Host</InputLabel>
+            <Select value={outputFormat} onChange={handleChange} label="Select Host">
+              {downloadData &&
+                downloadData.map((item: any, index: number) => (
+                  <MenuItem key={index} value={item.download}>
+                    {item.label}
+                  </MenuItem>
+                ))}
+            </Select>
+          </FormControl>
+
+          <TextField value={link} label="" fullWidth InputProps={{ readOnly: true }} />
+
+          <TextField
+            value={mac}
+            label="Mac"
+            fullWidth
+            onChange={handleMacChange}
+            error={!!macError}
+            helperText={macError}
+            placeholder="00:11:22:33:44:55"
+          />
+
+          <MuiStack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+            <Button
+              color="primary"
+              onClick={handleSubmit}
+              variant="contained"
+              size="large"
+              disabled={link.length === 0 || !!macError || mac.length === 0 || submitting}
+            >
+              {submitting ? <CircularProgress size={24} /> : 'Submit'}
+            </Button>
+          </MuiStack>
+        </MuiStack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
 
 function M3UDialog({ open, onClose, downloadData }: { open: boolean; onClose: () => void; downloadData: any[] }) {
   const [selectedFormat, setSelectedFormat] = useState('');
