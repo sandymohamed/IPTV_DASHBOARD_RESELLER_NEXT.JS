@@ -415,7 +415,8 @@ export default function UserRenewForm({
         setSuccess(result.message || 'User renewed successfully');
         setTimeout(() => {
           router.push('/dashboard/user/list');
-        }, 1200);
+          router.refresh(); // Force refresh server data
+        }, 500);
       } else {
         const message = result.error || 'Unable to renew user';
         showToast.error(message);

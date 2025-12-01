@@ -21,10 +21,10 @@ export default async function CodesEditPage({ params }: { params: { id: string }
     // Fetch code by ID
     currentCode = await getCodeById(params.id);
 
-    // Fetch packages
+    // Fetch packages (cached)
     if (session?.user?.member_group_id) {
-      const packagesResponse = await fetchWithAuth<any>(`/packages/${session?.user.member_group_id}`);
-      packages = packagesResponse?.data || packagesResponse?.result || packagesResponse || [];
+      const { getCachedPackages } = await import('@/lib/services/packagesService');
+      packages = await getCachedPackages(session.user.member_group_id);
     }
 
     // Fetch resellers

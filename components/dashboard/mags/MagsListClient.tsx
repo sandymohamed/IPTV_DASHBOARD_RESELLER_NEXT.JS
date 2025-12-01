@@ -43,12 +43,10 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
-import CancelIcon from '@mui/icons-material/Cancel';
-import TvIcon from '@mui/icons-material/Tv';
 import AndroidIcon from '@mui/icons-material/Android';
 import Menu from '@mui/material/Menu';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { deleteMag, enableDisableMag, lockUnlockMag, killMagConnections } from '@/lib/services/magsService';
+import { deleteMag, enableDisableMag, lockUnlockMag,  } from '@/lib/services/magsService';
 import { showToast } from '@/lib/utils/toast';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
 import ElapsedTimeCounter from '@/components/dashboard/user/ElapsedTimeCounter';
@@ -501,9 +499,7 @@ function RowActions({ row }: { row: any }) {
   const [openDelete, setOpenDelete] = useState(false);
   const [openConfirmEnable, setOpenConfirmEnable] = useState(false);
   const [openConfirmLock, setOpenConfirmLock] = useState(false);
-  const [openConfirmKill, setOpenConfirmKill] = useState(false);
-  const [openTV, setOpenTV] = useState(false);
-  const [openAndroid, setOpenAndroid] = useState(false);
+  // const [openConfirmKill, setOpenConfirmKill] = useState(false);
   
   const id = row.id;
   const enabled = row?.enabled;
@@ -569,23 +565,23 @@ function RowActions({ row }: { row: any }) {
     }
   };
 
-  const handleKill = async () => {
-    try {
-      setBusy(true);
-      const response = await killMagConnections(String(id));
-      if (response?.data?.success || response?.success) {
-        showToast.success('Success!');
-        setOpenConfirmKill(false);
-        router.refresh();
-      } else {
-        showToast.error('Failed, Please try again!');
-      }
-    } catch (error: any) {
-      showToast.error(error?.message || 'Failed, Please try again!');
-    } finally {
-      setBusy(false);
-    }
-  };
+  // const handleKill = async () => {
+  //   try {
+  //     setBusy(true);
+  //     const response = await killMagConnections(String(id));
+  //     if (response?.data?.success || response?.success) {
+  //       showToast.success('Success!');
+  //       setOpenConfirmKill(false);
+  //       router.refresh();
+  //     } else {
+  //       showToast.error('Failed, Please try again!');
+  //     }
+  //   } catch (error: any) {
+  //     showToast.error(error?.message || 'Failed, Please try again!');
+  //   } finally {
+  //     setBusy(false);
+  //   }
+  // };
 
   const handleDelete = async () => {
     try {
@@ -668,7 +664,7 @@ function RowActions({ row }: { row: any }) {
           {!admin_enabled ? 'Unlock' : 'Lock'}
         </MenuItem>
 
-        <MenuItem
+        {/* <MenuItem
           onClick={() => {
             setOpenConfirmKill(true);
             handleClosePopover();
@@ -677,7 +673,7 @@ function RowActions({ row }: { row: any }) {
         >
           <CancelIcon sx={{ mr: 1, fontSize: 20 }} />
           Kill
-        </MenuItem>
+        </MenuItem> */}
 
         <MenuItem
           onClick={() => {
@@ -690,27 +686,7 @@ function RowActions({ row }: { row: any }) {
           Remove
         </MenuItem>
 
-        <MenuItem
-          onClick={() => {
-            setOpenTV(true);
-            handleClosePopover();
-          }}
-          sx={{ color: 'info.main' }}
-        >
-          <TvIcon sx={{ mr: 1, fontSize: 20 }} />
-          Upload To Smart TV
-        </MenuItem>
 
-        <MenuItem
-          onClick={() => {
-            setOpenAndroid(true);
-            handleClosePopover();
-          }}
-          sx={{ color: 'success.main' }}
-        >
-          <AndroidIcon sx={{ mr: 1, fontSize: 20 }} />
-          Upload To Android
-        </MenuItem>
       </Menu>
 
       {openM3U && download && (
@@ -722,6 +698,7 @@ function RowActions({ row }: { row: any }) {
         onClose={() => setOpenConfirmEnable(false)}
         onConfirm={handleEnableDisable}
         title={!enabled ? 'Enable' : 'Disable'}
+        icon={!enabled ? <ToggleOnIcon sx={{ color: '#fff', fontSize: 28 }} /> : <ToggleOffIcon sx={{ color: 'warning.main', fontSize: 28 }} />}
         message={!enabled ? 'Are you sure you want to enable this device?' : 'Are you sure you want to disable this device?'}
         confirmText={!enabled ? 'Enable' : 'Disable'}
         itemName={row.username || row.mac || `Device #${id}`}
@@ -733,13 +710,14 @@ function RowActions({ row }: { row: any }) {
         onClose={() => setOpenConfirmLock(false)}
         onConfirm={handleLockUnlock}
         title={!admin_enabled ? 'Unlock' : 'Lock'}
+        icon={!admin_enabled ? <LockOpenIcon sx={{ color: '#fff', fontSize: 28 }} /> : <LockIcon sx={{ color: 'warning.main', fontSize: 28 }} />}
         message={!admin_enabled ? 'Are you sure you want to unlock this device?' : 'Are you sure you want to lock this device?'}
         confirmText={!admin_enabled ? 'Unlock' : 'Lock'}
         itemName={row.username || row.mac || `Device #${id}`}
         loading={busy}
       />
 
-      <DeleteConfirmation
+      {/* <DeleteConfirmation
         open={openConfirmKill}
         onClose={() => setOpenConfirmKill(false)}
         onConfirm={handleKill}
@@ -748,7 +726,7 @@ function RowActions({ row }: { row: any }) {
         confirmText="Kill"
         itemName={row.username || row.mac || `Device #${id}`}
         loading={busy}
-      />
+      /> */}
 
       <DeleteConfirmation
         open={openDelete}
@@ -760,29 +738,8 @@ function RowActions({ row }: { row: any }) {
         loading={busy}
       />
 
-      {openTV && (
-        <Dialog open={openTV} onClose={() => setOpenTV(false)}>
-          <DialogTitle>Upload To Smart TV</DialogTitle>
-          <DialogContent>
-            <Typography>Smart TV upload functionality coming soon...</Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenTV(false)}>Close</Button>
-          </DialogActions>
-        </Dialog>
-      )}
 
-      {openAndroid && (
-        <Dialog open={openAndroid} onClose={() => setOpenAndroid(false)}>
-          <DialogTitle>Upload To Android</DialogTitle>
-          <DialogContent>
-            <Typography>Android upload functionality coming soon...</Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenAndroid(false)}>Close</Button>
-          </DialogActions>
-        </Dialog>
-      )}
+   
     </>
   );
 }

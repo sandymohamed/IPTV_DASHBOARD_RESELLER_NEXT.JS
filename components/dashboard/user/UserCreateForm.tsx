@@ -294,7 +294,8 @@ export default function UserCreateForm({ packages, templates = [] }: UserCreateF
         setSuccess(result.message || 'User created successfully');
         setTimeout(() => {
           router.push('/dashboard/user/list');
-        }, 1200);
+          router.refresh(); // Force refresh server data
+        }, 500);
       } else {
         const message = result.error || 'Unable to create user';
         showToast.error(message);

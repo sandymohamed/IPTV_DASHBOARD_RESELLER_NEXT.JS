@@ -23,10 +23,10 @@ export default async function EnigmasRenewPage({ params }: { params: { id: strin
     const enigmaResponse = await fetchWithAuth<any>(`/enigmas/${params.id}`);
     currentEnigma = enigmaResponse?.result || enigmaResponse?.data || enigmaResponse;
 
-    // Fetch packages
+    // Fetch packages (cached)
     if (session?.user?.member_group_id) {
-      const packagesResponse = await fetchWithAuth<any>(`/packages/${session?.user.member_group_id}`);
-      packages = packagesResponse?.data || packagesResponse?.result || packagesResponse || [];
+      const { getCachedPackages } = await import('@/lib/services/packagesService');
+      packages = await getCachedPackages(session.user.member_group_id);
     }
 
     // Fetch templates

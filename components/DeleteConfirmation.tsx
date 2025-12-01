@@ -28,6 +28,7 @@ interface DeleteConfirmationProps {
   loading?: boolean;
   confirmText?: string;
   cancelText?: string;
+  icon?: React.ReactNode;
 }
 
 export default function DeleteConfirmation({
@@ -40,6 +41,7 @@ export default function DeleteConfirmation({
   loading = false,
   confirmText = 'Delete',
   cancelText = 'Cancel',
+  icon,
 }: DeleteConfirmationProps) {
   const theme = useTheme();
 
@@ -82,8 +84,9 @@ export default function DeleteConfirmation({
               justifyContent: 'center',
             }}
           >
-            <DeleteOutlineIcon sx={{ color: 'error.main', fontSize: 28 }} />
-          </Box>
+            {!icon ? <DeleteOutlineIcon sx={{ color: 'error.main', fontSize: 28 }} /> :
+              icon}
+         </Box>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             {title}
           </Typography>
@@ -178,7 +181,7 @@ export default function DeleteConfirmation({
           disabled={loading}
           variant="contained"
           color="error"
-          startIcon={loading ? undefined : <DeleteOutlineIcon />}
+          startIcon={loading ? undefined : icon ? icon : <DeleteOutlineIcon />}
           sx={{
             minWidth: 120,
             textTransform: 'none',
@@ -191,7 +194,7 @@ export default function DeleteConfirmation({
             },
           }}
         >
-          {loading ? 'Deleting...' : confirmText}
+          {loading ? '...' : confirmText}
         </Button>
       </DialogActions>
     </Dialog>

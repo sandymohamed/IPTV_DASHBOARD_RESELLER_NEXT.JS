@@ -726,6 +726,7 @@ function RowActions({ row }: { row: any }) {
         onClose={() => setOpenConfirmEnable(false)}
         onConfirm={handleEnableDisable}
         title={!enabled ? 'Enable' : 'Disable'}
+        icon={!enabled ? <ToggleOnIcon sx={{ color: '#fff', fontSize: 28 }} /> : <ToggleOffIcon sx={{ color: 'warning.main', fontSize: 28 }} />}
         message={!enabled ? 'Are you sure you want to enable this user?' : 'Are you sure you want to disable this user?'}
         confirmText={!enabled ? 'Enable' : 'Disable'}
         itemName={row.username || `User #${id}`}
@@ -737,6 +738,7 @@ function RowActions({ row }: { row: any }) {
         onClose={() => setOpenConfirmLock(false)}
         onConfirm={handleLockUnlock}
         title={!admin_enabled ? 'Unlock' : 'Lock'}
+        icon={!admin_enabled ? <LockOpenIcon sx={{ color: '#fff', fontSize: 28 }} /> : <LockIcon sx={{ color: 'warning.main', fontSize: 28 }} />}
         message={!admin_enabled ? 'Are you sure you want to unlock this user?' : 'Are you sure you want to lock this user?'}
         confirmText={!admin_enabled ? 'Unlock' : 'Lock'}
         itemName={row.username || `User #${id}`}
@@ -748,6 +750,7 @@ function RowActions({ row }: { row: any }) {
         onClose={() => setOpenConfirmKill(false)}
         onConfirm={handleKill}
         title="Kill Connections"
+        icon={<CancelIcon sx={{ color: '#fff', fontSize: 28 }} />}
         message="Are you sure you want to kill all active connections for this user?"
         confirmText="Kill"
         itemName={row.username || `User #${id}`}

@@ -331,7 +331,8 @@ export default function UserEditForm({ currentUser, packages = [], templates = [
         setSuccess(result.message || 'User updated successfully');
         setTimeout(() => {
           router.push('/dashboard/user/list');
-        }, 1200);
+          router.refresh(); // Force refresh server data
+        }, 500);
       } else {
         const message = result.error || 'Unable to update user';
         showToast.error(message);

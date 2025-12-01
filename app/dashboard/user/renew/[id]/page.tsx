@@ -22,10 +22,10 @@ export default async function UserRenewPage({ params }: { params: { id: string }
     const userResponse = await fetchWithAuth<any>(`/users/${params.id}`);
     currentUser = userResponse?.result || userResponse?.data || userResponse;
 
-    // Fetch packages
+    // Fetch packages (cached)
     if (session?.user?.member_group_id) {
-      const packagesResponse = await fetchWithAuth<any>(`/packages/${session?.user.member_group_id}`);
-      packages = packagesResponse?.data || packagesResponse?.result || packagesResponse || [];
+      const { getCachedPackages } = await import('@/lib/services/packagesService');
+      packages = await getCachedPackages(session.user.member_group_id);
     }
 
     // Fetch templates
