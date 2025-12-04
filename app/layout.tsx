@@ -4,6 +4,7 @@ import ThemeProvider from '@/lib/theme';
 import NotificationSetup from '@/components/NotificationSetup';
 import ToastProvider from '@/components/ToastProvider';
 import { AuthProvider } from './auth-provider';
+import DatePickerProvider from '@/components/providers/DatePickerProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -34,9 +35,11 @@ export default function RootLayout({
       <body>
           <SettingsProvider>
             <ThemeProvider>
-              <NotificationSetup />
-              <ToastProvider />
-              {children}
+              <DatePickerProvider>
+                <NotificationSetup />
+                <ToastProvider />
+                {children}
+              </DatePickerProvider>
             </ThemeProvider>
           </SettingsProvider>
       </body>

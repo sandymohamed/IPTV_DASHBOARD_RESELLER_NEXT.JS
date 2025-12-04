@@ -61,19 +61,19 @@ interface Column {
 
 const columns: readonly Column[] = [
   { id: 'adminid', label: 'ID', minWidth: 60 },
-  { id: 'reseller_father', label: 'Main Father', minWidth: 120 },
-  { id: 'father', label: 'Father', minWidth: 120 },
+  { id: 'main_reseller_father', label: 'Main Father', minWidth: 120 },
+  { id: 'reseller_father', label: 'Father', minWidth: 120 },
   { id: 'admin_name', label: 'Full Name', minWidth: 150 },
   { id: 'adm_username', label: 'User Name', minWidth: 120 },
   { id: 'group_name', label: 'Group Member', minWidth: 120 },
   { id: 'user_count', label: 'Users', minWidth: 80, align: 'center', format: (value: number) => (
     <Chip size="small" label={value || 0} color="primary" variant="outlined" />
   )},
-  { id: 'allowed_ips', label: 'IP', minWidth: 120, align: 'center' },
+  { id: 'ipaddress', label: 'IP', minWidth: 120, align: 'center' },
   { id: 'balance', label: 'Credits', minWidth: 100, align: 'right', format: (value: number) => (
     <Chip size="small" label={value || 0} color={value > 0 ? 'success' : 'default'} />
   )},
-  { id: 'created_at', label: 'Created at', minWidth: 120, align: 'center', format: (value: string) => {
+  { id: 'regdate', label: 'Created at', minWidth: 120, align: 'center', format: (value: string) => {
     if (!value) return 'N/A';
     try {
       return new Date(value).toLocaleDateString();
@@ -81,7 +81,7 @@ const columns: readonly Column[] = [
       return value;
     }
   }},
-  { id: 'last_login', label: 'Last Login', minWidth: 120, align: 'center', format: (value: string) => {
+  { id: 'lastlogin', label: 'Last Login', minWidth: 120, align: 'center', format: (value: string) => {
     if (!value) return 'N/A';
     try {
       return new Date(value).toLocaleDateString();
@@ -89,7 +89,7 @@ const columns: readonly Column[] = [
       return value;
     }
   }},
-  { id: 'reseller_notes', label: 'Notes', minWidth: 150 },
+  { id: 'notes', label: 'Notes', minWidth: 150 },
   { id: 'Options', label: 'Options', minWidth: 140, format: (_: any, row: any) => <RowActions row={row} /> },
 ];
 
@@ -100,6 +100,9 @@ interface SubResellersListClientProps {
 }
 
 export default function SubResellersListClient({ initialData, totalCount = 0, initialError = null }: SubResellersListClientProps) {
+ 
+ console.log('Rendering SubResellersListClient with initialData:', initialData);
+ 
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -418,18 +421,15 @@ function RowActions({ row }: { row: any }) {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={() => { router.push(`/dashboard/sub-resel/${id}`); handleMenuClose(); }}>
-          <VisibilityIcon fontSize="small" sx={{ mr: 1 }} />
-          View
-        </MenuItem>
+    
         <MenuItem onClick={() => { setOpenEdit(true); handleMenuClose(); }}>
           <EditIcon fontSize="small" sx={{ mr: 1 }} />
           Edit
         </MenuItem>
-        <MenuItem onClick={() => { setOpenPayment(true); handleMenuClose(); }}>
+        {/* <MenuItem onClick={() => { setOpenPayment(true); handleMenuClose(); }}>
           <PaymentIcon fontSize="small" sx={{ mr: 1 }} />
           Payment
-        </MenuItem>
+        </MenuItem> */}
         <MenuItem onClick={() => { setOpenSuspend(true); handleMenuClose(); }}>
           {suspend ? <LockOpenIcon fontSize="small" sx={{ mr: 1 }} /> : <LockIcon fontSize="small" sx={{ mr: 1 }} />}
           {suspend ? 'Unsuspend' : 'Suspend'}
@@ -458,7 +458,7 @@ function RowActions({ row }: { row: any }) {
         />
       )}
 
-      {openPayment && (
+      {/* {openPayment && (
         <PaymentCreditsDialog
           open={openPayment}
           onClose={() => setOpenPayment(false)}
@@ -469,7 +469,7 @@ function RowActions({ row }: { row: any }) {
             router.refresh();
           }}
         />
-      )}
+      )} */}
 
       {openSuspend && (
         <SuspendDialog
@@ -637,43 +637,43 @@ function EditSubResellerDialog({ open, onClose, subResellerId, onSaved }: { open
   );
 }
 
-function PaymentCreditsDialog({ open, onClose, subResellerId, subResellerName, onSaved }: { open: boolean; onClose: () => void; subResellerId: string | number; subResellerName: string; onSaved: () => void | Promise<void> }) {
-  const { register, handleSubmit, formState: { isSubmitting }, reset } = useForm<{ credits: number; notes?: string }>({
-    defaultValues: { credits: 0, notes: '' },
-  });
+// function PaymentCreditsDialog({ open, onClose, subResellerId, subResellerName, onSaved }: { open: boolean; onClose: () => void; subResellerId: string | number; subResellerName: string; onSaved: () => void | Promise<void> }) {
+//   const { register, handleSubmit, formState: { isSubmitting }, reset } = useForm<{ credits: number; notes?: string }>({
+//     defaultValues: { credits: 0, notes: '' },
+//   });
 
-  useEffect(() => {
-    if (open) {
-      reset({ credits: 0, notes: '' });
-    }
-  }, [open, reset]);
+//   useEffect(() => {
+//     if (open) {
+//       reset({ credits: 0, notes: '' });
+//     }
+//   }, [open, reset]);
 
-  const onSubmit = async (data: { credits: number; notes?: string }) => {
-    try {
-      await addCreditsToSubReseller(String(subResellerId), data);
-      showToast.success(`Credits added successfully to ${subResellerName}`);
-      await onSaved();
-    } catch (error: any) {
-      showToast.error(error?.message || 'Failed to add credits');
-    }
-  };
+//   const onSubmit = async (data: { credits: number; notes?: string }) => {
+//     try {
+//       await addCreditsToSubReseller(String(subResellerId), data);
+//       showToast.success(`Credits added successfully to ${subResellerName}`);
+//       await onSaved();
+//     } catch (error: any) {
+//       showToast.error(error?.message || 'Failed to add credits');
+//     }
+//   };
 
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Add Credits to {subResellerName}</DialogTitle>
-      <DialogContent sx={{ pt: 2 }}>
-        <MuiStack spacing={2}>
-          <TextField label="Credits" type="number" {...register('credits', { valueAsNumber: true })} fullWidth required />
-          <TextField label="Notes" {...register('notes')} fullWidth multiline rows={3} />
-        </MuiStack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={isSubmitting}>Cancel</Button>
-        <Button onClick={handleSubmit(onSubmit)} variant="contained" disabled={isSubmitting}>Add Credits</Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
+//   return (
+//     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+//       <DialogTitle>Add Credits to {subResellerName}</DialogTitle>
+//       <DialogContent sx={{ pt: 2 }}>
+//         <MuiStack spacing={2}>
+//           <TextField label="Credits" type="number" {...register('credits', { valueAsNumber: true })} fullWidth required />
+//           <TextField label="Notes" {...register('notes')} fullWidth multiline rows={3} />
+//         </MuiStack>
+//       </DialogContent>
+//       <DialogActions>
+//         <Button onClick={onClose} disabled={isSubmitting}>Cancel</Button>
+//         <Button onClick={handleSubmit(onSubmit)} variant="contained" disabled={isSubmitting}>Add Credits</Button>
+//       </DialogActions>
+//     </Dialog>
+//   );
+// }
 
 function SuspendDialog({ open, onClose, onSuspend, isSuspended }: { open: boolean; onClose: () => void; onSuspend: (action: string) => void; isSuspended: boolean }) {
   return (

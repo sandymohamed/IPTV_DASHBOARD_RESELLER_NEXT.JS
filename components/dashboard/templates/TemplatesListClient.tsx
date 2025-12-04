@@ -17,24 +17,16 @@ import {
   TableHead,
   TablePagination,
   TableRow,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   CircularProgress,
   IconButton,
   InputAdornment,
+  TextField,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { EditNotifications } from '@mui/icons-material';
+import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { showToast } from '@/lib/utils/toast';
 import { deleteTemplate } from '@/lib/services/templatesService';
@@ -91,11 +83,12 @@ export default function TemplatesListClient({ initialData, totalCount = 0, initi
   const currentPage = parseInt(searchParams.get('page') || '1');
   const currentPageSize = parseInt(searchParams.get('pageSize') || '100');
   const currentSearch = searchParams.get('search') || '';
-  const currentActiveConnections = searchParams.get('active_connections');
-  const currentIsTrial = searchParams.get('is_trial');
+  // const currentActiveConnections = searchParams.get('active_connections');
+  // const currentIsTrial = searchParams.get('is_trial');
 
   // Local state for search input (debounced)
   const [searchInput, setSearchInput] = useState(currentSearch);
+  
 
   useEffect(() => {
     setTableData(initialData);
@@ -305,9 +298,7 @@ export default function TemplatesListClient({ initialData, totalCount = 0, initi
 
 function RowActions({ row }: { row: any }) {
   const router = useRouter();
-  // const apiClient = useApiClient();
   const [busy, setBusy] = useState(false);
-  const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
   const id = row.id;
 
@@ -318,12 +309,16 @@ function RowActions({ row }: { row: any }) {
 
       <Tooltip title="Edit">
         <span>
-          <Button variant="text" size="small" onClick={() => setOpenEdit(true)} disabled={busy}>
-            <EditNotifications fontSize="small" />
+          <Button
+            variant="text"
+            size="small"
+            onClick={() => router.push(`/dashboard/templates/edit/${id}`)}
+            disabled={busy}
+          >
+            <EditIcon fontSize="small" />
           </Button>
         </span>
       </Tooltip>
-
 
       <Tooltip title="Delete">
         <span>
@@ -333,18 +328,6 @@ function RowActions({ row }: { row: any }) {
         </span>
       </Tooltip>
 
-      {openEdit && (
-        <EditMagDialog
-          open={openEdit}
-          onClose={() => setOpenEdit(false)}
-          deviceId={id}
-          onSaved={async () => {
-            setOpenEdit(false);
-            router.refresh();
-          }}
-        />
-      )}
-
 
       <DeleteConfirmation
         open={openDelete}
@@ -352,7 +335,7 @@ function RowActions({ row }: { row: any }) {
         onConfirm={async () => {
           try {
             setBusy(true);
-            // await deleteTemplate(apiClient, String(id));
+            await deleteTemplate(String(id));
             showToast.success('Template deleted successfully');
             setOpenDelete(false);
             router.refresh();
@@ -363,137 +346,11 @@ function RowActions({ row }: { row: any }) {
         }}
         title="Delete Template"
         message="Are you sure you want to delete this template? This action cannot be undone and will permanently remove the Template and all associated data."
-        itemName={row.username || row.mac || `Template #${id}`}
+        itemName={row.title || `Template #${id}`}
         loading={busy}
       />
     </MuiStack>
   );
-}
-
-
-// type EditMagForm = {
-//   userName?: string;
-//   password?: string;
-//   Notes?: string;
-//   status?: number;
-// };
-
-// const editMagSchema: yup.ObjectSchema<EditMagForm> = yup
-//   .object({
-//     userName: yup.string().optional(),
-//     password: yup.string().optional(),
-//     Notes: yup.string().optional(),
-//     status: yup.number().oneOf([0, 1]).optional(),
-//   })
-//   .required();
-
-function EditMagDialog({
-  open,
-  onClose,
-  deviceId,
-  onSaved,
-}: {
-  open: boolean;
-  onClose: () => void;
-  deviceId: string | number;
-  onSaved: () => void | Promise<void>;
-}) {
-
-  // const apiClient = useApiClient();
-  // const [loading, setLoading] = useState(false);
-  // const [deviceData, setDeviceData] = useState<any>(null);
-  // const {
-  //   register,
-  //   handleSubmit,
-  //   formState: { isSubmitting },
-  //   reset,
-  // } = useForm<EditMagForm>({
-  //   resolver: yupResolver(editMagSchema),
-  // });
-
-  // useEffect(() => {
-  //   if (open && deviceId) {
-  //     const fetchDevice = async () => {
-  //       try {
-  //         setLoading(true);
-  //         const data = await getMagById(apiClient, String(deviceId));
-  //         setDeviceData(data);
-  //         reset({
-  //           userName: data?.username || '',
-  //           password: '',
-  //           Notes: data?.reseller_notes || '',
-  //           status: data?.enabled ?? 1,
-  //         });
-  //       } catch (error) {
-  //         console.error('Failed to fetch device:', error);
-  //       } finally {
-  //         setLoading(false);
-  //       }
-  //     };
-  //     fetchDevice();
-  //   }
-  // }, [open, deviceId, reset, apiClient]);
-
-  // const onSubmit = async (data: EditMagForm) => {
-  //   if (!deviceId) return;
-  //   try {
-  //     await updateMag(apiClient, String(deviceId), data);
-  //     showToast.success('Device updated successfully');
-  //     await onSaved();
-  //   } catch (error: any) {
-  //     showToast.error(error?.message || 'Failed to update device');
-  //   }
-  // };
-
-  // return (
-  //   <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-  //     <DialogTitle>Edit MAG</DialogTitle>
-  //     <DialogContent sx={{ pt: 2 }}>
-  //       {loading ? (
-  //         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-  //           <CircularProgress size={24} />
-  //         </Box>
-  //       ) : (
-  //         <MuiStack spacing={2}>
-  //           <TextField label="User Name" {...register('userName')} fullWidth defaultValue={deviceData?.username || ''} />
-  //           <TextField
-  //             label="Password"
-  //             type="password"
-  //             {...register('password')}
-  //             fullWidth
-  //             placeholder="Leave empty to keep current"
-  //           />
-  //           <TextField
-  //             label="Notes"
-  //             {...register('Notes')}
-  //             fullWidth
-  //             multiline
-  //             rows={3}
-  //             defaultValue={deviceData?.reseller_notes || ''}
-  //           />
-  //           <FormControl fullWidth>
-  //             <InputLabel>Status</InputLabel>
-  //             <Select label="Status" defaultValue={deviceData?.enabled ?? 1} {...(register('status') as any)}>
-  //               <MenuItem value={1}>Active</MenuItem>
-  //               <MenuItem value={0}>Inactive</MenuItem>
-  //             </Select>
-  //           </FormControl>
-  //         </MuiStack>
-  //       )}
-  //     </DialogContent>
-  //     <DialogActions>
-  //       <Button onClick={onClose} disabled={isSubmitting || loading}>
-  //         Cancel
-  //       </Button>
-  //       <Button onClick={handleSubmit(onSubmit)} variant="contained" disabled={isSubmitting || loading}>
-  //         Save
-  //       </Button>
-  //     </DialogActions>
-  //   </Dialog>
-  // );
-
-
-  return <h2>EDIT TEMPLATE</h2>
 }
 
 

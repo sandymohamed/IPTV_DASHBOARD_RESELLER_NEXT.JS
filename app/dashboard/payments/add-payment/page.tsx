@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { getSubResellers } from '@/lib/services/subResellersService';
 import { addNewPayment } from '@/lib/services/transactionsService';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
 
 const paymentSchema = yup.object().shape({
   adminid: yup.mixed().required('Reseller is required').nullable(),
@@ -39,12 +40,12 @@ interface PaymentFormData {
 
 export default function AddPaymentPage() {
   const router = useRouter();
+  const { user, updateUser } = useAuthContext();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [resellersList, setResellersList] = useState<any[]>([]);
-  const [user, setUser] = useState<any>(null);
 
   const defaultValues = useMemo(
     () => ({
@@ -56,30 +57,22 @@ export default function AddPaymentPage() {
     []
   );
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-  } = useForm<PaymentFormData>({
+  const form = useForm<PaymentFormData>({
     resolver: yupResolver(paymentSchema) as any,
     defaultValues,
   });
 
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = form;
+
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchResellers = async () => {
       try {
         setLoading(true);
-        
-        // Fetch user session
-        const sessionRes = await fetch('/api/session');
-        const sessionData = await sessionRes.json();
-        if (sessionData?.user) {
-          setUser(sessionData.user);
-        }
-
-        // Fetch resellers
         const result = await getSubResellers({ page: 1, pageSize: 1000 });
         if (result.data && result.data.length >= 0) {
           const formattedData = result.data.map((item: any) => ({
@@ -90,13 +83,13 @@ export default function AddPaymentPage() {
           setResellersList(formattedData);
         }
       } catch (err: any) {
-        setError('Failed to load data');
+        setError('Failed to load resellers');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchResellers();
   }, []);
 
   const onSubmit = async (data: PaymentFormData) => {
@@ -116,18 +109,15 @@ export default function AddPaymentPage() {
 
       if (response?.success) {
         setSuccess(response?.message || 'Payment added successfully');
-        // Refresh user data
-        const sessionRes = await fetch('/api/session');
-        const sessionData = await sessionRes.json();
-        if (sessionData?.user) {
-          setUser(sessionData.user);
-        }
-        setTimeout(() => {
-          router.push('/dashboard/payments/list');
-          router.refresh();
-        }, 1500);
+        // Reset form immediately
+        reset(defaultValues);
+        // Update user in background (don't wait for it)
+        updateUser();
+        // Redirect immediately without delay
+        router.push('/dashboard/payments/list');
       } else {
         setError(response?.data?.error || response?.message || 'Unable to create payment');
+        setSubmitting(false);
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred. Please try again.');

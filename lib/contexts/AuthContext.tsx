@@ -1,11 +1,8 @@
-// 'use client';
+'use client';
 
-// // NOTE: Legacy client-side auth context kept only for reference during the SSR migration.
-// // Prefer the server-based helpers in `lib/auth/session.ts` for new work.
-
-// import { createContext, useContext, useEffect, useReducer, useCallback, useMemo, useState } from 'react';
-// import axiosInstance from '@/lib/utils/axios';
-// import { isValidToken, setSession, getToken } from '@/lib/utils/auth';
+import { useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useDashboardUser } from './DashboardUserContext';
 
 // interface User {
 //   id: string;
@@ -203,10 +200,27 @@
 //   return <AuthContext.Provider value={memoizedValue}>{children}</AuthContext.Provider>;
 // }
 
-// export function useAuthContext() {
-//   const context = useContext(AuthContext);
-//   if (!context) {
-//     throw new Error('useAuthContext must be used inside AuthProvider');
-//   }
-//   return context;
-// }
+/**
+ * useAuthContext - A compatibility hook that wraps useDashboardUser
+ * Provides the same interface as the old AuthContext for backward compatibility
+ */
+export function useAuthContext() {
+  const { user } = useDashboardUser();
+  const router = useRouter();
+
+  const updateUser = useCallback(async () => {
+    try {
+      // Refresh the current route to get updated user data from the server
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to update user:', error);
+    }
+  }, [router]);
+
+  return {
+    user,
+    updateUser,
+    isAuthenticated: !!user,
+    isInitialized: true,
+  };
+}

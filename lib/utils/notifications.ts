@@ -53,8 +53,8 @@ export async function showNotification(options: NotificationOptions): Promise<vo
     const registration = await navigator.serviceWorker.ready;
     await registration.showNotification(options.title, {
       body: options.body,
-      icon: options.icon || '/logo/android-chrome-192x192.png',
-      badge: options.badge || '/logo/android-chrome-192x192.png',
+      icon: options.icon || '/favicon.ico',
+      badge: options.badge || '/favicon.ico',
       tag: options.tag,
       data: options.data,
       requireInteraction: options.requireInteraction,

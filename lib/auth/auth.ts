@@ -107,13 +107,16 @@ const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       // Always return session with ALL user data if token has it
       if (token.user || token.adminid) {
-        // Include ALL user data from token in session
+        // Include ALL user data from token in session, explicitly including balance
         const userData = {
-          ...(token.user as any), // Spread all user data from token
+          ...(token.user as any), // Spread all user data from token (includes balance)
           ...session.user, // Merge with session user (overwrites with token data)
           id: (token.user as any)?.id || token.adminid?.toString() || session.user?.id || '',
           email: (token.user as any)?.email || (token.user as any)?.adm_username || session.user?.email || '',
           name: (token.user as any)?.name || (token.user as any)?.adm_username || session.user?.name || '',
+          balance: (token.user as any)?.balance ?? null, // Explicitly include balance
+          adminid: (token.user as any)?.adminid || token.adminid || null,
+          adm_username: (token.user as any)?.adm_username || null,
         }
 
         session.user = userData

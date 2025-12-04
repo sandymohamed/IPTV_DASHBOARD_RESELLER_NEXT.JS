@@ -54,11 +54,13 @@ export async function getSubResellersList(params: {
       COUNT(DISTINCT users.id) AS user_count, 
       COUNT(DISTINCT resellers.adminid) AS resellers_count, 
       parent.adm_username AS reseller_father, 
+      main_parent.adm_username AS main_reseller_father, 
       (SELECT SUM(credit - depit) FROM maa_trans WHERE admin = maa_admin.adminid) AS balance
     FROM maa_admin
     LEFT JOIN users ON users.created_by = maa_admin.adminid
     LEFT JOIN maa_admin AS resellers ON resellers.father = maa_admin.adminid
     LEFT JOIN maa_admin AS parent ON parent.adminid = maa_admin.father
+    LEFT JOIN maa_admin AS main_parent ON main_parent.adminid = maa_admin.main_father
     LEFT JOIN member_groups mgroups ON mgroups.group_id = maa_admin.member_group_id
     WHERE maa_admin.father = ${owner} ${qry}
     GROUP BY maa_admin.adminid

@@ -269,7 +269,7 @@ async function getBalance(adminid: number): Promise<number> {
         "SELECT SUM(credit - depit) AS bal FROM maa_trans WHERE admin = ?",
         [adminid]
     )
-    return rows.length > 0 ? parseFloat(rows[0].balance) : 0
+    return rows.length > 0 && rows[0].bal ? parseFloat(rows[0].bal) : 0
 }
 
 async function logAction(app: string, action: string, logData: string, admin: string = '', ip: string = '') {

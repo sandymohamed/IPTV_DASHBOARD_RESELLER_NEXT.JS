@@ -36,8 +36,8 @@ self.addEventListener('push', (event) => {
   let notificationData = {
     title: 'IPTV Dashboard',
     body: 'You have a new notification',
-    icon: '/logo/android-chrome-192x192.png',
-    badge: '/logo/android-chrome-192x192.png',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
     tag: 'notification',
     requireInteraction: false,
     vibrate: [200, 100, 200],
@@ -162,8 +162,8 @@ function getAlarmsFromStorage() {
 function triggerAlarmNotification(alarm) {
   return self.registration.showNotification(alarm.title || 'Task Reminder', {
     body: alarm.description || `Task "${alarm.title}" is due now!`,
-    icon: '/logo/android-chrome-192x192.png',
-    badge: '/logo/android-chrome-192x192.png',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
     tag: `alarm-${alarm.id}`,
     data: {
       url: `/dashboard/tasks`,
