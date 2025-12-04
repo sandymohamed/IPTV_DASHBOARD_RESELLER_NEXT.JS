@@ -32,6 +32,27 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const stored = localStorage.getItem('settings');
+                  if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed.themeMode === 'dark') {
+                      document.documentElement.style.colorScheme = 'dark';
+                    }
+                  }
+                } catch (e) {
+                  // Ignore errors
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body>
           <SettingsProvider>
             <ThemeProvider>

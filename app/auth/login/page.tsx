@@ -295,10 +295,16 @@ export default function LoginPage() {
                       '& .MuiOutlinedInput-root': {
                         borderRadius: 2,
                         transition: 'all 0.2s ease',
+                        '& input': {
+                          color: theme.palette.text.primary,
+                        },
                         '&:hover': {
                           transform: 'translateY(-2px)',
                           boxShadow: theme.shadows[4],
                         },
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: theme.palette.text.secondary,
                       },
                     }}
                   />
@@ -337,10 +343,16 @@ export default function LoginPage() {
                       '& .MuiOutlinedInput-root': {
                         borderRadius: 2,
                         transition: 'all 0.2s ease',
+                        '& input': {
+                          color: theme.palette.text.primary,
+                        },
                         '&:hover': {
                           transform: 'translateY(-2px)',
                           boxShadow: theme.shadows[4],
                         },
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: theme.palette.text.secondary,
                       },
                     }}
                   />

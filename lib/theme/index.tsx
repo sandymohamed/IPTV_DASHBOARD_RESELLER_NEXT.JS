@@ -71,10 +71,45 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
         MuiTableHead: {
           styleOverrides: {
             root: {
-              backgroundColor: alpha(paletteConfig.primary.main, 0.06),
+              backgroundColor: themeMode === 'light' 
+                ? alpha(paletteConfig.primary.main, 0.06)
+                : alpha(paletteConfig.grey[700], 0.6),
               '& .MuiTableCell-head': {
-                color: paletteConfig.primary.darker,
+                color: themeMode === 'light' 
+                  ? paletteConfig.text.primary
+                  : paletteConfig.text.primary,
                 fontWeight: 600,
+                fontSize: '0.875rem',
+              },
+            },
+          },
+        },
+        MuiTableCell: {
+          styleOverrides: {
+            root: {
+              color: paletteConfig.text.primary,
+            },
+            head: {
+              color: paletteConfig.text.primary,
+            },
+            body: {
+              color: paletteConfig.text.primary,
+            },
+          },
+        },
+        MuiTextField: {
+          styleOverrides: {
+            root: {
+              '& .MuiOutlinedInput-root': {
+                '& input': {
+                  color: paletteConfig.text.primary,
+                },
+                '& textarea': {
+                  color: paletteConfig.text.primary,
+                },
+                '& .MuiInputLabel-root': {
+                  color: paletteConfig.text.secondary,
+                },
               },
             },
           },

@@ -96,3 +96,12 @@ export const killUserConnections = async (id: string) => {
     throw error.response?.data || error;
   }
 };
+
+export const changePassword = async (data: { old_pass: string; new_pwd: string; new_pwd2: string }) => {
+  try {
+    const response = await axiosInstance.post('/auth/change-password', data);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};

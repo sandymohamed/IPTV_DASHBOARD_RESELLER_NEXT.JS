@@ -85,6 +85,7 @@ function Sidebar({ openNav, onCloseNav, navCollapsed }: SidebarProps) {
             transition: theme.transitions.create('width', {
               duration: theme.transitions.duration.shorter,
             }),
+            display: { xs: 'none', md: 'none', lg: 'block' },
           },
         }}
       >

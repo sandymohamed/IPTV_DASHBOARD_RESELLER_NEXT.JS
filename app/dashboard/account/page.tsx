@@ -1,6 +1,7 @@
 import { Box, Typography, Card, CardContent, Grid, Divider } from '@mui/material';
 import { getServerSession } from '@/lib/auth/auth';
 import { redirect } from 'next/navigation';
+import AccountChangePassword from '@/components/dashboard/account/AccountChangePassword';
 
 export default async function AccountPage() {
   const session = await getServerSession();
@@ -88,6 +89,10 @@ export default async function AccountPage() {
               )}
             </CardContent>
           </Card>
+        </Grid>
+
+        <Grid item xs={12}>
+          <AccountChangePassword />
         </Grid>
       </Grid>
     </Box>

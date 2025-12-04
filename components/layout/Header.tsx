@@ -56,9 +56,9 @@ function Header({ onOpenNav, onToggleNav, navCollapsed, user }: HeaderProps) {
         boxShadow: 'none',
         height: HEADER.H_MOBILE,
         zIndex: theme.zIndex.appBar + 1,
-        bgcolor: '#ffffff',
+        bgcolor: theme.palette.mode === 'light' ? '#ffffff' : theme.palette.background.paper,
         borderBottom: `1px solid ${theme.palette.divider}`,
-        transition: theme.transitions.create(['width', 'margin-left'], {
+        transition: theme.transitions.create(['width', 'margin-left', 'background-color'], {
           duration: theme.transitions.duration.shorter,
         }),
         ...{

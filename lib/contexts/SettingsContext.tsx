@@ -31,29 +31,37 @@ export const useSettingsContext = () => {
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<SettingsState>(() => {
+    // Always return light mode initially to avoid hydration mismatch
+    // The actual theme will be loaded in useEffect
+    return { themeMode: 'light' };
+  });
+
+  const [mounted, setMounted] = useState(false);
+
+  // Load theme from localStorage on mount
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('settings');
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          return { themeMode: parsed.themeMode || 'light' };
+          if (parsed.themeMode === 'light' || parsed.themeMode === 'dark') {
+            setSettings({ themeMode: parsed.themeMode });
+          }
         } catch {
-          return { themeMode: 'light' };
+          // Keep default light mode
         }
       }
+      setMounted(true);
     }
-    return { themeMode: 'light' };
-  });
+  }, []);
 
+  // Save theme to localStorage immediately when it changes
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Debounce localStorage writes to prevent excessive writes
-      const timeoutId = setTimeout(() => {
-        localStorage.setItem('settings', JSON.stringify(settings));
-      }, 300);
-      return () => clearTimeout(timeoutId);
+    if (mounted && typeof window !== 'undefined') {
+      localStorage.setItem('settings', JSON.stringify(settings));
     }
-  }, [settings]);
+  }, [settings, mounted]);
 
   const onToggleMode = useCallback(() => {
     setSettings((prev) => ({
