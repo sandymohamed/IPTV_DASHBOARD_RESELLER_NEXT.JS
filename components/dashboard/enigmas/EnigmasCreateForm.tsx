@@ -277,9 +277,9 @@ export default function EnigmasCreateForm({ packages, templates = [] }: EnigmasC
         reseller_notes: data.reseller_notes || '',
         pkg: data.pkg,
         is_trial: data.is_trial,
-        bouquet: selectedTemplateId 
-          ? selectedBouquets 
-          : allOrder.length > 0 
+        bouquet: selectedTemplateId
+          ? selectedBouquets
+          : allOrder.length > 0
             ? allOrder.filter((item) => selectedBouquets.includes(item))
             : selectedBouquets,
         new_order: allOrder.length > 0 ? allOrder : selectedBouquets,
@@ -288,14 +288,13 @@ export default function EnigmasCreateForm({ packages, templates = [] }: EnigmasC
 
       const result = await createEnigmaAction(payload);
 
+      console.log("result", result);
       if (result.success) {
         showToast.success(result.message || 'Enigma device created successfully');
         setSuccess(result.message || 'Enigma device created successfully');
-        setTimeout(() => {
-          router.push('/dashboard/enigmas/list');
-        }, 1200);
+        router.push('/dashboard/enigmas/list');
       } else {
-        const message = result.error || 'Unable to create Enigma device';
+        const message = result?.error || 'Unable to create Enigma device';
         showToast.error(message);
         setError(message);
       }
@@ -504,57 +503,6 @@ export default function EnigmasCreateForm({ packages, templates = [] }: EnigmasC
                 />
               )}
 
-              {(selectedPackage && !customBouquetValue && allBouquets.length > 0) && (
-                <Box sx={{ mt: 3 }}>
-                  <Typography variant="h6" sx={{ mb: 2 }}>
-                    Select Bouquets
-                  </Typography>
-                  <Grid container spacing={2} sx={{ rowGap: 0, columnGap: 0 }}>
-                    {bouquets.bouquetsLive.length > 0 && (
-                      <Grid item xs={12} sm={6} md={4}>
-                        <DragDropCheckbox
-                          initial={bouquets.bouquetsLive}
-                          title="LIVE"
-                          selected={selectedBouquets}
-                          handleSelectedBouquet={handleSelectedBouquet}
-                          handleSelectAll={handleSelectAll}
-                          handleSelectNone={handleSelectNone}
-                          handleNewOrder={handleNewOrderLive}
-                        />
-                      </Grid>
-                    )}
-
-                    {bouquets.bouquetsVODS.length > 0 && (
-                      <Grid item xs={12} sm={6} md={4}>
-                        <DragDropCheckbox
-                          initial={bouquets.bouquetsVODS}
-                          title="VOD"
-                          selected={selectedBouquets}
-                          handleSelectedBouquet={handleSelectedBouquet}
-                          handleSelectAll={handleSelectAll}
-                          handleSelectNone={handleSelectNone}
-                          handleNewOrder={handleNewOrderVod}
-                        />
-                      </Grid>
-                    )}
-
-                    {bouquets.bouquetsSeries.length > 0 && (
-                      <Grid item xs={12} sm={6} md={4}>
-                        <DragDropCheckbox
-                          initial={bouquets.bouquetsSeries}
-                          title="SERIES"
-                          selected={selectedBouquets}
-                          handleSelectedBouquet={handleSelectedBouquet}
-                          handleSelectAll={handleSelectAll}
-                          handleSelectNone={handleSelectNone}
-                          handleNewOrder={handleNewOrderSeries}
-                        />
-                      </Grid>
-                    )}
-                  </Grid>
-                </Box>
-              )}
-
               <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
                 <Button variant="outlined" onClick={() => router.back()} disabled={submitting}>
                   Cancel
@@ -567,6 +515,60 @@ export default function EnigmasCreateForm({ packages, templates = [] }: EnigmasC
           </form>
         </CardContent>
       </Card>
+
+      {/* Full-width card for bouquets selection */}
+      {(selectedPackage && !customBouquetValue && allBouquets.length > 0) && (
+        <Card sx={{ width: '100%', mt: 3 }}>
+          <CardContent sx={{ p: 4 }}>
+            <Typography variant="h6" sx={{ mb: 3 }}>
+              Select Bouquets
+            </Typography>
+            <Grid container spacing={3}>
+              {bouquets.bouquetsLive.length > 0 && (
+                <Grid item xs={12} sm={6} md={4}>
+                  <DragDropCheckbox
+                    initial={bouquets.bouquetsLive}
+                    title="LIVE"
+                    selected={selectedBouquets}
+                    handleSelectedBouquet={handleSelectedBouquet}
+                    handleSelectAll={handleSelectAll}
+                    handleSelectNone={handleSelectNone}
+                    handleNewOrder={handleNewOrderLive}
+                  />
+                </Grid>
+              )}
+
+              {bouquets.bouquetsVODS.length > 0 && (
+                <Grid item xs={12} sm={6} md={4}>
+                  <DragDropCheckbox
+                    initial={bouquets.bouquetsVODS}
+                    title="VOD"
+                    selected={selectedBouquets}
+                    handleSelectedBouquet={handleSelectedBouquet}
+                    handleSelectAll={handleSelectAll}
+                    handleSelectNone={handleSelectNone}
+                    handleNewOrder={handleNewOrderVod}
+                  />
+                </Grid>
+              )}
+
+              {bouquets.bouquetsSeries.length > 0 && (
+                <Grid item xs={12} sm={6} md={4}>
+                  <DragDropCheckbox
+                    initial={bouquets.bouquetsSeries}
+                    title="SERIES"
+                    selected={selectedBouquets}
+                    handleSelectedBouquet={handleSelectedBouquet}
+                    handleSelectAll={handleSelectAll}
+                    handleSelectNone={handleSelectNone}
+                    handleNewOrder={handleNewOrderSeries}
+                  />
+                </Grid>
+              )}
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
     </Box>
   );
 }

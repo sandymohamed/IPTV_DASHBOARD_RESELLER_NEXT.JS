@@ -23,6 +23,7 @@ import {
   InputLabel,
   Select,
   Chip,
+  Button,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -127,6 +128,17 @@ export default function SubInvoicesListClient({ initialData, totalCount = 0, ini
   const handleSearch = useCallback((field: 'search_txt' | 'admin' | 'view_sub', searchTerm: string | number) => {
     updateSearchParams({ [field]: searchTerm || null, page: 1 });
   }, [updateSearchParams]);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchTxt('');
+    setAdmin('');
+    setDate1('');
+    setDate2('');
+    setViewSub('0');
+    startTransition(() => {
+      router.push('/dashboard/payments/sub-invoices');
+    });
+  }, [router]);
 
   // Debounced search handlers
   useEffect(() => {
@@ -278,6 +290,18 @@ export default function SubInvoicesListClient({ initialData, totalCount = 0, ini
               }}
             />
           </Stack>
+          {(currentSearchTxt || currentAdmin || currentDate1 || currentDate2 || currentViewSub !== '0') && (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                variant="outlined"
+                startIcon={<ClearIcon />}
+                onClick={handleClearSearch}
+                disabled={isPending}
+              >
+                Clear Search
+              </Button>
+            </Box>
+          )}
         </Stack>
       </Paper>
 

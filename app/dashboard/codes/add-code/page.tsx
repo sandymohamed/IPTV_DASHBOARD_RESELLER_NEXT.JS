@@ -3,7 +3,7 @@ import CodesCreateForm from '@/components/dashboard/codes/CodesCreateForm';
 import { AuthFetchError } from '@/lib/server/fetchWithAuth';
 import { getServerSession } from '@/lib/auth/auth';
 import { getSubResellers } from '@/lib/services/subResellersService';
-import { getCachedPackages } from '@/lib/services/packagesService';
+import { getCachedPackages } from '@/lib/services/packagesService.server';
 
 export const dynamic = 'force-dynamic';
 

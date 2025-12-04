@@ -1,22 +1,3 @@
-// import { redirect } from 'next/navigation';
-// import { isAuthenticated } from '@/lib/auth/session';
-// import { getLoginRedirect } from '@/lib/auth/utils';
-
-// export default async function DashboardPage() {
-//   const authenticated = await isAuthenticated();
-
-//   if (!authenticated) {
-//     redirect(getLoginRedirect('/dashboard'));
-//   }
-
-//   return (
-//     <div>
-//       <h1>Dashboard</h1>
-//       <p>Welcome to your dashboard!</p>
-//     </div>
-//   );
-// }
-
 
 import { redirect } from 'next/navigation';
 import { getServerSession } from '@/lib/auth/auth';

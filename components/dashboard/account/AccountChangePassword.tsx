@@ -63,10 +63,8 @@ export default function AccountChangePassword() {
       if (response?.success) {
         showToast.success('Password changed successfully! Please login again.');
         reset();
-        // Logout and redirect to login after a short delay
-        setTimeout(async () => {
-          await signOut({ callbackUrl: '/auth/login', redirect: true });
-        }, 1500);
+        // Logout and redirect to login immediately
+        await signOut({ callbackUrl: '/auth/login', redirect: true });
       } else {
         showToast.error(
           `Unable to change password: ${response?.data?.message || response?.message || 'Unknown error'}`

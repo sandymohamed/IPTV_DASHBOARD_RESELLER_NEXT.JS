@@ -15,7 +15,7 @@ interface SidebarProps {
 }
 
 // Custom Scrollbar component
-const CustomScrollbar = memo(function CustomScrollbar({ children, sx, ...other }: { children: React.ReactNode; sx?: any; [key: string]: any }) {
+const CustomScrollbar = memo(function CustomScrollbar({ children, sx, ...other }: { children: React.ReactNode; sx?: any;[key: string]: any }) {
   return (
     <Box
       sx={{
@@ -36,30 +36,42 @@ function Sidebar({ openNav, onCloseNav, navCollapsed }: SidebarProps) {
 
   const sidebarWidth = navCollapsed ? NAV.W_DASHBOARD_MINI : NAV.W_DASHBOARD;
 
-  const renderContent = useMemo(() => (
-    <CustomScrollbar
-      sx={{
-        height: 1,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <Stack
-        spacing={3}
+  // Sidebar background colors - white in light mode, match main background in dark mode
+  const sidebarBgColor = theme.palette.mode === 'light' 
+    ? '#FFFFFF' 
+    : theme.palette.background.default; // Match main background in dark mode
+
+  // Sidebar background colors - calculate inside useMemo to ensure reactivity
+  const renderContent = useMemo(() => {
+    return (
+      <CustomScrollbar
         sx={{
-          pt: 3,
-          pb: 2,
-          px: navCollapsed ? 1.5 : 2.5,
-          flexShrink: 0,
-          alignItems: navCollapsed ? 'center' : 'flex-start',
+          height: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: sidebarBgColor,
+          transition: theme.transitions.create('background-color', {
+            duration: theme.transitions.duration.shorter,
+          }),
         }}
       >
-        <Logo sx={{ width: navCollapsed ? 40 : 'auto' }} />
-      </Stack>
+        <Stack
+          spacing={3}
+          sx={{
+            pt: 3,
+            pb: 2,
+            px: navCollapsed ? 1.5 : 2.5,
+            flexShrink: 0,
+            alignItems: navCollapsed ? 'center' : 'flex-start',
+          }}
+        >
+          <Logo sx={{ width: navCollapsed ? 40 : 'auto' }} />
+        </Stack>
 
-      <NavSection data={navConfig} navCollapsed={navCollapsed} />
-    </CustomScrollbar>
-  ), [navCollapsed]);
+        <NavSection data={navConfig} navCollapsed={navCollapsed} />
+      </CustomScrollbar>
+    );
+  }, [navCollapsed, sidebarBgColor, theme.transitions]);
 
   return (
     <Box
@@ -76,13 +88,13 @@ function Sidebar({ openNav, onCloseNav, navCollapsed }: SidebarProps) {
           sx: {
             zIndex: 1000,
             width: sidebarWidth,
-            bgcolor: 'background.default',
+            bgcolor: sidebarBgColor,
             borderRight: `dashed 1px ${theme.palette.divider}`,
             height: '100vh',
             position: 'fixed',
             left: 0,
             top: 0,
-            transition: theme.transitions.create('width', {
+            transition: theme.transitions.create(['width', 'background-color'], {
               duration: theme.transitions.duration.shorter,
             }),
             display: { xs: 'none', md: 'none', lg: 'block' },
@@ -101,8 +113,11 @@ function Sidebar({ openNav, onCloseNav, navCollapsed }: SidebarProps) {
         PaperProps={{
           sx: {
             width: NAV.W_DASHBOARD,
-            bgcolor: 'background.default',
+            bgcolor: sidebarBgColor,
             zIndex: 1200,
+            transition: theme.transitions.create('background-color', {
+              duration: theme.transitions.duration.shorter,
+            }),
           },
         }}
         sx={{

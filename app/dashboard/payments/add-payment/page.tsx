@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, use } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -23,6 +23,31 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { getSubResellers } from '@/lib/services/subResellersService';
 import { addNewPayment } from '@/lib/services/transactionsService';
 import { useAuthContext } from '@/lib/contexts/AuthContext';
+
+// Cache for resellers list to avoid refetching
+const resellersCache = {
+  data: null as any[] | null,
+  timestamp: 0,
+  TTL: 5 * 60 * 1000, // 5 minutes
+};
+
+const getCachedResellers = async () => {
+  const now = Date.now();
+  if (resellersCache.data && (now - resellersCache.timestamp) < resellersCache.TTL) {
+    return resellersCache.data;
+  }
+  
+  const result = await getSubResellers({ page: 1, pageSize: 1000 });
+  const formattedData = result.data.map((item: any) => ({
+    id: item.adminid || item.id,
+    label: item.admin_name || item.adm_username || item.username || 'Unknown',
+    value: item.adminid || item.id,
+  }));
+  
+  resellersCache.data = formattedData;
+  resellersCache.timestamp = now;
+  return formattedData;
+};
 
 const paymentSchema = yup.object().shape({
   adminid: yup.mixed().required('Reseller is required').nullable(),
@@ -70,26 +95,31 @@ export default function AddPaymentPage() {
   } = form;
 
   useEffect(() => {
+    let cancelled = false;
+    
     const fetchResellers = async () => {
       try {
         setLoading(true);
-        const result = await getSubResellers({ page: 1, pageSize: 1000 });
-        if (result.data && result.data.length >= 0) {
-          const formattedData = result.data.map((item: any) => ({
-            id: item.adminid || item.id,
-            label: item.admin_name || item.adm_username || item.username || 'Unknown',
-            value: item.adminid || item.id,
-          }));
+        const formattedData = await getCachedResellers();
+        if (!cancelled) {
           setResellersList(formattedData);
         }
       } catch (err: any) {
-        setError('Failed to load resellers');
+        if (!cancelled) {
+          setError('Failed to load resellers');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchResellers();
+    
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const onSubmit = async (data: PaymentFormData) => {

@@ -113,14 +113,11 @@ export default function UserCreateForm({ packages, templates = [] }: UserCreateF
 
   const selectedPackageId = watch('pkg');
   const customBouquetValue = watch('custom');
-  const selectedTemplate = watch('template_id');
-  const availablePackages = useMemo(() => packages ?? [], [packages]);
+   const availablePackages = useMemo(() => packages ?? [], [packages]);
 
   // Sync customBouquet state with form value
   useEffect(() => {
     setCustomBouquet(customBouquetValue !== false);
-
-    console.log('customBouquetValue', customBouquetValue);
   }, [customBouquetValue]);
 
   const selectedPackage = useMemo(
@@ -292,10 +289,8 @@ export default function UserCreateForm({ packages, templates = [] }: UserCreateF
       if (result.success) {
         showToast.success(result.message || 'User created successfully');
         setSuccess(result.message || 'User created successfully');
-        setTimeout(() => {
-          router.push('/dashboard/user/list');
-          router.refresh(); // Force refresh server data
-        }, 500);
+        router.push('/dashboard/user/list');
+        router.refresh(); // Force refresh server data
       } else {
         const message = result.error || 'Unable to create user';
         showToast.error(message);
@@ -519,59 +514,6 @@ export default function UserCreateForm({ packages, templates = [] }: UserCreateF
                 />
               )}
 
-            
-
-              {(selectedPackage && !customBouquetValue && allBouquets.length > 0 )&& (
-                <Box sx={{ mt: 3 }}>
-                  <Typography variant="h6" sx={{ mb: 2 }}>
-                    Select Bouquets
-                  </Typography>
-                  <Grid container spacing={2} sx={{ rowGap: 0, columnGap: 0 }}>
-                    {bouquets.bouquetsLive.length > 0 && (
-                      <Grid item xs={12} sm={6} md={4}>
-                        <DragDropCheckbox
-                          initial={bouquets.bouquetsLive}
-                          title="LIVE"
-                          selected={selectedBouquets}
-                          handleSelectedBouquet={handleSelectedBouquet}
-                          handleSelectAll={handleSelectAll}
-                          handleSelectNone={handleSelectNone}
-                          handleNewOrder={handleNewOrderLive}
-                        />
-                      </Grid>
-                    )}
-
-                    {bouquets.bouquetsVODS.length > 0 && (
-                      <Grid item xs={12} sm={6} md={4}>
-                        <DragDropCheckbox
-                          initial={bouquets.bouquetsVODS}
-                          title="VOD"
-                          selected={selectedBouquets}
-                          handleSelectedBouquet={handleSelectedBouquet}
-                          handleSelectAll={handleSelectAll}
-                          handleSelectNone={handleSelectNone}
-                          handleNewOrder={handleNewOrderVod}
-                        />
-                      </Grid>
-                    )}
-
-                    {bouquets.bouquetsSeries.length > 0 && (
-                      <Grid item xs={12} sm={6} md={4}>
-                        <DragDropCheckbox
-                          initial={bouquets.bouquetsSeries}
-                          title="SERIES"
-                          selected={selectedBouquets}
-                          handleSelectedBouquet={handleSelectedBouquet}
-                          handleSelectAll={handleSelectAll}
-                          handleSelectNone={handleSelectNone}
-                          handleNewOrder={handleNewOrderSeries}
-                        />
-                      </Grid>
-                    )}
-                  </Grid>
-                </Box>
-              )}
-
               <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
                 <Button variant="outlined" onClick={() => router.back()} disabled={submitting}>
                   Cancel
@@ -584,6 +526,60 @@ export default function UserCreateForm({ packages, templates = [] }: UserCreateF
           </form>
         </CardContent>
       </Card>
+
+      {/* Full-width card for bouquets selection */}
+      {(selectedPackage && !customBouquetValue && allBouquets.length > 0) && (
+        <Card sx={{ width: '100%', mt: 3 }}>
+          <CardContent sx={{ p: 4 }}>
+            <Typography variant="h6" sx={{ mb: 3 }}>
+              Select Bouquets
+            </Typography>
+            <Grid container spacing={3}>
+              {bouquets.bouquetsLive.length > 0 && (
+                <Grid item xs={12} sm={6} md={4}>
+                  <DragDropCheckbox
+                    initial={bouquets.bouquetsLive}
+                    title="LIVE"
+                    selected={selectedBouquets}
+                    handleSelectedBouquet={handleSelectedBouquet}
+                    handleSelectAll={handleSelectAll}
+                    handleSelectNone={handleSelectNone}
+                    handleNewOrder={handleNewOrderLive}
+                  />
+                </Grid>
+              )}
+
+              {bouquets.bouquetsVODS.length > 0 && (
+                <Grid item xs={12} sm={6} md={4}>
+                  <DragDropCheckbox
+                    initial={bouquets.bouquetsVODS}
+                    title="VOD"
+                    selected={selectedBouquets}
+                    handleSelectedBouquet={handleSelectedBouquet}
+                    handleSelectAll={handleSelectAll}
+                    handleSelectNone={handleSelectNone}
+                    handleNewOrder={handleNewOrderVod}
+                  />
+                </Grid>
+              )}
+
+              {bouquets.bouquetsSeries.length > 0 && (
+                <Grid item xs={12} sm={6} md={4}>
+                  <DragDropCheckbox
+                    initial={bouquets.bouquetsSeries}
+                    title="SERIES"
+                    selected={selectedBouquets}
+                    handleSelectedBouquet={handleSelectedBouquet}
+                    handleSelectAll={handleSelectAll}
+                    handleSelectNone={handleSelectNone}
+                    handleNewOrder={handleNewOrderSeries}
+                  />
+                </Grid>
+              )}
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
     </Box>
   );
 }

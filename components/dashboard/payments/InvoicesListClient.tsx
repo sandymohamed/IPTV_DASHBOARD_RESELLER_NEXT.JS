@@ -127,6 +127,17 @@ export default function InvoicesListClient({ initialData, totalCount = 0, initia
     updateSearchParams({ [field]: searchTerm || null, page: 1 });
   }, [updateSearchParams]);
 
+  const handleClearSearch = useCallback(() => {
+    setNotes('');
+    setAdmin('');
+    setDate1('');
+    setDate2('');
+    setDepit('');
+    startTransition(() => {
+      router.push('/dashboard/payments/invoices');
+    });
+  }, [router]);
+
   // Debounced search handlers
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -295,6 +306,18 @@ export default function InvoicesListClient({ initialData, totalCount = 0, initia
               }}
             />
           </Stack>
+          {(currentNotes || currentAdmin || currentDate1 || currentDate2 || currentDepit) && (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                variant="outlined"
+                startIcon={<ClearIcon />}
+                onClick={handleClearSearch}
+                disabled={isPending}
+              >
+                Clear Search
+              </Button>
+            </Box>
+          )}
         </Stack>
       </Paper>
 

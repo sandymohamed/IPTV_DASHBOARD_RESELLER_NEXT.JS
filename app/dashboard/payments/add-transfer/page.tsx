@@ -23,6 +23,32 @@ import { getSubResellers } from '@/lib/services/subResellersService';
 import { addNewTransfer } from '@/lib/services/transactionsService';
 import { useAuthContext } from '@/lib/contexts/AuthContext';
 
+// Cache for resellers list to avoid refetching
+const resellersCache = {
+  data: null as any[] | null,
+  timestamp: 0,
+  TTL: 5 * 60 * 1000, // 5 minutes
+};
+
+const getCachedResellers = async () => {
+  const now = Date.now();
+  if (resellersCache.data && (now - resellersCache.timestamp) < resellersCache.TTL) {
+    return resellersCache.data;
+  }
+  
+  const result = await getSubResellers({ page: 1, pageSize: 1000 });
+  const formattedData = result.data.map((item: any) => ({
+    id: item.adminid || item.id,
+    label: item.admin_name || item.adm_username || item.username || 'Unknown',
+    value: item.adminid || item.id,
+    balance: item.balance || item.credits || 0,
+  }));
+  
+  resellersCache.data = formattedData;
+  resellersCache.timestamp = now;
+  return formattedData;
+};
+
 interface TransferFormData {
   from: any | null;
   to: any | null;
@@ -74,27 +100,31 @@ export default function AddTransferPage() {
   });
 
   useEffect(() => {
+    let cancelled = false;
+    
     const fetchResellers = async () => {
       try {
         setLoading(true);
-        const result = await getSubResellers({ page: 1, pageSize: 1000 });
-        if (result.data && result.data.length >= 0) {
-          const formattedData = result.data.map((item: any) => ({
-            id: item.adminid || item.id,
-            label: item.admin_name || item.adm_username || item.username || 'Unknown',
-            value: item.adminid || item.id,
-            balance: item.balance || item.credits || 0,
-          }));
+        const formattedData = await getCachedResellers();
+        if (!cancelled) {
           setResellersList(formattedData);
         }
       } catch (err: any) {
-        setError('Failed to load resellers');
+        if (!cancelled) {
+          setError('Failed to load resellers');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchResellers();
+    
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const onSubmit = async (data: TransferFormData) => {

@@ -159,6 +159,14 @@ export default function SubResellersListClient({ initialData, totalCount = 0, in
     updateSearchParams({ [field]: searchTerm || null, page: 1 }); // Reset to page 1 when searching
   }, [updateSearchParams]);
 
+  const handleClearSearch = useCallback(() => {
+    setUsernameSearch('');
+    setAdminNameSearch('');
+    startTransition(() => {
+      router.push('/dashboard/sub-resel/list');
+    });
+  }, [router]);
+
   // Debounced search handlers
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -267,6 +275,18 @@ export default function SubResellersListClient({ initialData, totalCount = 0, in
               ),
             }}
           />
+          {(currentUsernameSearch || currentAdminNameSearch) && (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+              <Button
+                variant="outlined"
+                startIcon={<ClearIcon />}
+                onClick={handleClearSearch}
+                disabled={isPending}
+              >
+                Clear Search
+              </Button>
+            </Box>
+          )}
         </MuiStack>
       </Paper>
 

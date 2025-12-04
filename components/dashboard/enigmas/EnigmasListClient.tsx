@@ -46,6 +46,7 @@ import LockOpenIcon from '@mui/icons-material/LockOpen';
 import CancelIcon from '@mui/icons-material/Cancel';
 import TvIcon from '@mui/icons-material/Tv';
 import AndroidIcon from '@mui/icons-material/Android';
+import ClearIcon from '@mui/icons-material/Clear';
 import Menu from '@mui/material/Menu';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { deleteEnigma, enableDisableEnigma, lockUnlockEnigma, killEnigmaConnections } from '@/lib/services/enigmasService';
@@ -362,20 +363,21 @@ export default function EnigmasListClient({ initialEnigmas, totalCount = 0, init
             </Select>
           </FormControl>
 
-          <Button
-            variant="outlined"
-            onClick={() => {
-              setSearchInput('');
-              updateSearchParams({ 
-                search: null, 
-                active_connections: null, 
-                is_trial: null, 
-                page: 1 
-              });
-            }}
-          >
-            Clear Filters
-          </Button>
+          {(currentSearch || currentActiveConnections || currentIsTrial) && (
+            <Button
+              variant="outlined"
+              startIcon={<ClearIcon />}
+              onClick={() => {
+                setSearchInput('');
+                startTransition(() => {
+                  router.push('/dashboard/enigmas/list');
+                });
+              }}
+              disabled={isPending}
+            >
+              Clear Search
+            </Button>
+          )}
         </MuiStack>
       </Paper>
 

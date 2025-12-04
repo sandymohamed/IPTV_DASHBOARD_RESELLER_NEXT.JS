@@ -341,9 +341,7 @@ export default function CodesEditForm({ currentCode, packages, resellers = [], u
         const message = response?.message || response?.data?.message || 'Code updated successfully';
         showToast.success(message);
         setSuccess(message);
-        setTimeout(() => {
-          router.push('/dashboard/codes/list');
-        }, 1200);
+        router.push('/dashboard/codes/list');
       } else {
         const errorMsg = response?.error || response?.data?.error || 'Unable to update code';
         showToast.error(errorMsg);

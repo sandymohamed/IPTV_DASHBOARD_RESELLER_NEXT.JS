@@ -127,6 +127,13 @@ export default function TemplatesListClient({ initialData, totalCount = 0, initi
     updateSearchParams({ search: searchTerm || null, page: 1 }); // Reset to page 1 when searching
   }, [updateSearchParams]);
 
+  const handleClearSearch = useCallback(() => {
+    setSearchInput('');
+    startTransition(() => {
+      router.push('/dashboard/templates/list');
+    });
+  }, [router]);
+
   const handleFilterChange = useCallback((filterName: string, value: string | number | null) => {
     updateSearchParams({ [filterName]: value, page: 1 }); // Reset to page 1 when filtering
   }, [updateSearchParams]);
@@ -165,36 +172,50 @@ export default function TemplatesListClient({ initialData, totalCount = 0, initi
 
       {/* Search Bar */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <TextField
-          fullWidth
-          placeholder="Search templates by title..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <IconButton edge="start" size="small">
-                  <SearchIcon />
-                </IconButton>
-              </InputAdornment>
-            ),
-            endAdornment: searchInput && (
-              <InputAdornment position="end">
-                <IconButton
-                  edge="end"
-                  size="small"
-                  onClick={() => {
-                    setSearchInput('');
-                    handleSearch('');
-                  }}
-                >
-                  <ClearIcon />
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-          sx={{ mb: 0 }}
-        />
+        <MuiStack spacing={2}>
+          <TextField
+            fullWidth
+            placeholder="Search templates by title..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <IconButton edge="start" size="small">
+                    <SearchIcon />
+                  </IconButton>
+                </InputAdornment>
+              ),
+              endAdornment: searchInput && (
+                <InputAdornment position="end">
+                  <IconButton
+                    edge="end"
+                    size="small"
+                    onClick={() => {
+                      setSearchInput('');
+                      handleSearch('');
+                    }}
+                  >
+                    <ClearIcon />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            sx={{ mb: 0 }}
+          />
+          {currentSearch && (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                variant="outlined"
+                startIcon={<ClearIcon />}
+                onClick={handleClearSearch}
+                disabled={isPending}
+              >
+                Clear Search
+              </Button>
+            </Box>
+          )}
+        </MuiStack>
       </Paper>
 
       <Paper

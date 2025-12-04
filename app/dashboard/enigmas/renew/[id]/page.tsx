@@ -25,7 +25,7 @@ export default async function EnigmasRenewPage({ params }: { params: { id: strin
 
     // Fetch packages (cached)
     if (session?.user?.member_group_id) {
-      const { getCachedPackages } = await import('@/lib/services/packagesService');
+      const { getCachedPackages } = await import('@/lib/services/packagesService.server');
       packages = await getCachedPackages(session.user.member_group_id);
     }
 

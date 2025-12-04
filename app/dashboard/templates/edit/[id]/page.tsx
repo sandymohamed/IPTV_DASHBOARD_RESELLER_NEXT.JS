@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import TemplateEditForm from '@/components/dashboard/templates/TemplateEditForm';
 import { getServerSession } from '@/lib/auth/auth';
-import { getCachedPackages } from '@/lib/services/packagesService';
+import { getCachedPackages } from '@/lib/services/packagesService.server';
 import { AuthFetchError, fetchWithAuth } from '@/lib/server/fetchWithAuth';
 
 export const dynamic = 'force-dynamic';

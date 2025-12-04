@@ -249,10 +249,8 @@ export default function TemplateCreateForm({
             "Template created successfully"
         );
         setSuccess("Template created successfully");
-        setTimeout(() => {
-          router.push("/dashboard/templates/list");
-          router.refresh();
-        }, 500);
+        router.push("/dashboard/templates/list");
+        router.refresh();
       } else {
         const message =
           result?.error || result?.data?.error || "Unable to create template";

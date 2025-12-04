@@ -44,6 +44,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import AndroidIcon from '@mui/icons-material/Android';
+import ClearIcon from '@mui/icons-material/Clear';
 import Menu from '@mui/material/Menu';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { deleteMag, enableDisableMag, lockUnlockMag,  } from '@/lib/services/magsService';
@@ -361,20 +362,21 @@ export default function MagsListClient({ initialMags, totalCount = 0, initialErr
             </Select>
           </FormControl>
 
-          <Button
-            variant="outlined"
-            onClick={() => {
-              setSearchInput('');
-              updateSearchParams({ 
-                search: null, 
-                active_connections: null, 
-                is_trial: null, 
-                page: 1 
-              });
-            }}
-          >
-            Clear Filters
-          </Button>
+          {(currentSearch || currentActiveConnections || currentIsTrial) && (
+            <Button
+              variant="outlined"
+              startIcon={<ClearIcon />}
+              onClick={() => {
+                setSearchInput('');
+                startTransition(() => {
+                  router.push('/dashboard/mags/list');
+                });
+              }}
+              disabled={isPending}
+            >
+              Clear Search
+            </Button>
+          )}
         </MuiStack>
       </Paper>
 

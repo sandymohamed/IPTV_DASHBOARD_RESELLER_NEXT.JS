@@ -137,6 +137,15 @@ export default function PaymentsListClient({ initialData, totalCount = 0, initia
     updateSearchParams({ [field]: searchTerm || null, page: 1 }); // Reset to page 1 when searching
   }, [updateSearchParams]);
 
+  const handleClearSearch = useCallback(() => {
+    setSearchTxt('');
+    setAdmin('');
+    setType('2'); // Reset to default type
+    startTransition(() => {
+      router.push('/dashboard/payments/list');
+    });
+  }, [router]);
+
   // Debounced search handlers
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -268,6 +277,18 @@ export default function PaymentsListClient({ initialData, totalCount = 0, initia
               </Select>
             </FormControl>
           </Stack>
+          {(currentSearchTxt || currentAdmin || currentType !== '2') && (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                variant="outlined"
+                startIcon={<ClearIcon />}
+                onClick={handleClearSearch}
+                disabled={isPending}
+              >
+                Clear Search
+              </Button>
+            </Box>
+          )}
         </Stack>
       </Paper>
 

@@ -22,6 +22,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  Button,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -133,6 +134,15 @@ export default function PaymentsSubResellersClient({ initialData, totalCount = 0
   const handleSearch = useCallback((field: 'search_txt' | 'admin' | 'type', searchTerm: string | number) => {
     updateSearchParams({ [field]: searchTerm || null, page: 1 });
   }, [updateSearchParams]);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchTxt('');
+    setAdmin('');
+    setType('2');
+    startTransition(() => {
+      router.push('/dashboard/payments/sub-resellers');
+    });
+  }, [router]);
 
   // Debounced search handlers
   useEffect(() => {
@@ -251,6 +261,18 @@ export default function PaymentsSubResellersClient({ initialData, totalCount = 0
               </Select>
             </FormControl>
           </Stack>
+          {(currentSearchTxt || currentAdmin || currentType !== '2') && (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                variant="outlined"
+                startIcon={<ClearIcon />}
+                onClick={handleClearSearch}
+                disabled={isPending}
+              >
+                Clear Search
+              </Button>
+            </Box>
+          )}
         </Stack>
       </Paper>
 

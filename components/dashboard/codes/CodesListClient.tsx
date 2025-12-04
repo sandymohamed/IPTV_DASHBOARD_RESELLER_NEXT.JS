@@ -154,6 +154,16 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
     updateSearchParams({ [field]: searchTerm || null, page: 1 }); // Reset to page 1 when searching
   }, [updateSearchParams]);
 
+  const handleClearSearch = useCallback(() => {
+    setNameSearch('');
+    setAdminSearch('');
+    setDate1Search('');
+    setDate2Search('');
+    startTransition(() => {
+      router.push('/dashboard/codes/list');
+    });
+  }, [router]);
+
   // Debounced search handlers
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -308,6 +318,18 @@ export default function CodesListClient({ initialData, totalCount = 0, initialEr
               }}
             />
           </Stack>
+          {(currentNameSearch || currentAdminSearch || currentDate1 || currentDate2) && (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                variant="outlined"
+                startIcon={<ClearIcon />}
+                onClick={handleClearSearch}
+                disabled={isPending}
+              >
+                Clear Search
+              </Button>
+            </Box>
+          )}
         </Stack>
       </Paper>
 

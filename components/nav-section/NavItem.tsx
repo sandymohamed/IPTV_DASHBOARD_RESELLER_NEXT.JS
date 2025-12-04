@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   ListItem,
   ListItemButton,
@@ -10,9 +10,10 @@ import {
   ListItemText,
   Collapse,
   List,
+  Box,
 } from '@mui/material';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 import { NavItem as NavItemType } from '@/lib/navigation/config';
 
 interface NavItemProps {
@@ -22,9 +23,15 @@ interface NavItemProps {
 
 export default function NavItem({ item, navCollapsed = false }: NavItemProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const hasChildren = item.children && item.children.length > 0;
   const isActive = pathname === item.path || (hasChildren && item.children?.some((child) => child.path === pathname));
+
+  // Prefetch on hover for faster navigation
+  const handleMouseEnter = (path: string) => {
+    router.prefetch(path);
+  };
 
   const handleClick = () => {
     if (hasChildren && !navCollapsed) {
@@ -41,14 +48,21 @@ export default function NavItem({ item, navCollapsed = false }: NavItemProps) {
             selected={isActive}
             sx={{
               minHeight: 44,
-              borderRadius: 1,
+              borderRadius: 1.5,
               mb: 0.5,
               justifyContent: navCollapsed ? 'center' : 'flex-start',
               px: navCollapsed ? 1 : 2,
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              '&:hover': {
+                bgcolor: 'action.hover',
+                transform: 'translateX(4px)',
+              },
               '&.Mui-selected': {
-                bgcolor: 'action.selected',
+                bgcolor: 'primary.lighter',
+                color: 'primary.main',
+                fontWeight: 600,
                 '&:hover': {
-                  bgcolor: 'action.selected',
+                  bgcolor: 'primary.lighter',
                 },
               },
             }}
@@ -60,9 +74,26 @@ export default function NavItem({ item, navCollapsed = false }: NavItemProps) {
                   minWidth: navCollapsed ? 0 : 40,
                   color: isActive ? 'primary.main' : 'text.secondary',
                   justifyContent: 'center',
+                  '& svg': {
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                  },
                 }}
               >
-                {item.icon}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 32,
+                    height: 32,
+                    borderRadius: 1.5,
+                    bgcolor: isActive ? 'primary.lighter' : 'transparent',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                >
+                  {item.icon}
+                </Box>
               </ListItemIcon>
             )}
             {!navCollapsed && (
@@ -74,7 +105,31 @@ export default function NavItem({ item, navCollapsed = false }: NavItemProps) {
                     fontWeight: isActive ? 600 : 500,
                   }}
                 />
-                {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    bgcolor: open ? 'primary.main' : 'action.hover',
+                    color: open ? 'primary.contrastText' : 'text.secondary',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                    '&:hover': {
+                      bgcolor: 'primary.main',
+                      color: 'primary.contrastText',
+                      transform: open ? 'rotate(180deg) scale(1.1)' : 'rotate(0deg) scale(1.1)',
+                    },
+                  }}
+                >
+                  {open ? (
+                    <RemoveIcon sx={{ fontSize: 18, transition: 'transform 0.3s ease' }} />
+                  ) : (
+                    <AddIcon sx={{ fontSize: 18, transition: 'transform 0.3s ease' }} />
+                  )}
+                </Box>
               </>
             )}
           </ListItemButton>
@@ -89,15 +144,24 @@ export default function NavItem({ item, navCollapsed = false }: NavItemProps) {
                     <ListItemButton
                       component={Link}
                       href={child.path}
+                      prefetch={true}
+                      onMouseEnter={() => handleMouseEnter(child.path)}
                       selected={childActive}
                       sx={{
                         minHeight: 36,
-                        borderRadius: 1,
+                        borderRadius: 1.5,
                         mb: 0.5,
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        '&:hover': {
+                          bgcolor: 'action.hover',
+                          transform: 'translateX(4px)',
+                        },
                         '&.Mui-selected': {
-                          bgcolor: 'action.selected',
+                          bgcolor: 'primary.lighter',
+                          color: 'primary.main',
+                          fontWeight: 600,
                           '&:hover': {
-                            bgcolor: 'action.selected',
+                            bgcolor: 'primary.lighter',
                           },
                         },
                       }}
@@ -107,9 +171,26 @@ export default function NavItem({ item, navCollapsed = false }: NavItemProps) {
                           sx={{
                             minWidth: 36,
                             color: childActive ? 'primary.main' : 'text.secondary',
+                            '& svg': {
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                              transform: childActive ? 'scale(1.1)' : 'scale(1)',
+                            },
                           }}
                         >
-                          {child.icon}
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: 28,
+                              height: 28,
+                              borderRadius: 1,
+                              bgcolor: childActive ? 'primary.lighter' : 'transparent',
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            }}
+                          >
+                            {child.icon}
+                          </Box>
                         </ListItemIcon>
                       )}
                       <ListItemText
@@ -135,17 +216,26 @@ export default function NavItem({ item, navCollapsed = false }: NavItemProps) {
       <ListItemButton
         component={Link}
         href={item.path}
+        prefetch={true}
+        onMouseEnter={() => handleMouseEnter(item.path)}
         selected={isActive}
         sx={{
           minHeight: 44,
-          borderRadius: 1,
+          borderRadius: 1.5,
           mb: 0.5,
           justifyContent: navCollapsed ? 'center' : 'flex-start',
           px: navCollapsed ? 1 : 2,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          '&:hover': {
+            bgcolor: 'action.hover',
+            transform: 'translateX(4px)',
+          },
           '&.Mui-selected': {
-            bgcolor: 'action.selected',
+            bgcolor: 'primary.lighter',
+            color: 'primary.main',
+            fontWeight: 600,
             '&:hover': {
-              bgcolor: 'action.selected',
+              bgcolor: 'primary.lighter',
             },
           },
         }}
@@ -157,9 +247,26 @@ export default function NavItem({ item, navCollapsed = false }: NavItemProps) {
               minWidth: navCollapsed ? 0 : 40,
               color: isActive ? 'primary.main' : 'text.secondary',
               justifyContent: 'center',
+              '& svg': {
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: isActive ? 'scale(1.1)' : 'scale(1)',
+              },
             }}
           >
-            {item.icon}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                borderRadius: 1.5,
+                bgcolor: isActive ? 'primary.lighter' : 'transparent',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            >
+              {item.icon}
+            </Box>
           </ListItemIcon>
         )}
         {!navCollapsed && (

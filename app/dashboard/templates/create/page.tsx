@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import TemplateCreateForm from '@/components/dashboard/templates/TemplateCreateForm';
 import { getServerSession } from '@/lib/auth/auth';
-import { getCachedPackages } from '@/lib/services/packagesService';
+import { getCachedPackages } from '@/lib/services/packagesService.server';
 
 export const dynamic = 'force-dynamic';
 

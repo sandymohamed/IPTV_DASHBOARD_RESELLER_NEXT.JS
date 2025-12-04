@@ -386,10 +386,8 @@ export default function TemplateEditForm({ currentTemplate, packages }: Template
       if (result?.success || result?.data?.success) {
         showToast.success(result?.data?.message || result?.message || 'Template updated successfully');
         setSuccess('Template updated successfully');
-        setTimeout(() => {
-          router.push('/dashboard/templates/list');
-          router.refresh();
-        }, 500);
+        router.push('/dashboard/templates/list');
+        router.refresh();
       } else {
         const message = result?.error || result?.data?.error || 'Unable to update template';
         showToast.error(message);

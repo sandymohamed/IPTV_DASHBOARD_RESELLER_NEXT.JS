@@ -1,14 +1,17 @@
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
-import SettingsIcon from '@mui/icons-material/Settings';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import TvIcon from '@mui/icons-material/Tv';
-import ReceiptIcon from '@mui/icons-material/Receipt';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
-import SupportAgentIcon from '@mui/icons-material/SupportAgent';
-import MapIcon from '@mui/icons-material/Map';
-import HistoryIcon from '@mui/icons-material/History';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import HomeIcon from '@mui/icons-material/Home';
+import NetworkCheckIcon from '@mui/icons-material/NetworkCheck';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
+import TimelineIcon from '@mui/icons-material/Timeline';
+import SmartDisplayIcon from '@mui/icons-material/SmartDisplay';
+import DevicesIcon from '@mui/icons-material/Devices';
+import CategoryIcon from '@mui/icons-material/Category';
+import GroupsIcon from '@mui/icons-material/Groups';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import PersonIcon from '@mui/icons-material/Person';
 
 export interface NavItem {
   title: string;
@@ -29,7 +32,7 @@ export const navConfig: NavGroup[] = [
       {
         title: 'Main',
         path: '/dashboard',
-        icon: <SettingsIcon />,
+        icon: <HomeIcon />,
         children: [
           {
             title: 'Dashboard',
@@ -37,24 +40,24 @@ export const navConfig: NavGroup[] = [
             icon: <DashboardIcon />,
           },
           {
-            title: 'Client Connections',
+            title: 'Live Connections',
             path: '/dashboard/client-connection',
-            icon: <SupportAgentIcon />,
+            icon: <NetworkCheckIcon />,
           },
-          {
-            title: 'Map Connections',
-            path: '/dashboard/map',
-            icon: <MapIcon />,
-          },
+          // {
+          //   title: 'Map Connections',
+          //   path: '/dashboard/map',
+          //   icon: <LocationOnIcon />,
+          // },
           {
             title: 'Tickets',
             path: '/dashboard/tickets',
-            icon: <SupportAgentIcon />,
+            icon: <QuestionAnswerIcon />,
           },
           {
             title: 'User Activity',
             path: '/dashboard/user-activity-logs',
-            icon: <HistoryIcon />,
+            icon: <TimelineIcon />,
           },
         ],
       },
@@ -64,7 +67,7 @@ export const navConfig: NavGroup[] = [
     subheader: 'management',
     items: [
       {
-        title: 'Lines',
+        title: 'Users Lines',
         path: '/dashboard/user',
         icon: <PeopleIcon />,
         children: [
@@ -73,27 +76,39 @@ export const navConfig: NavGroup[] = [
         ],
       },
       {
-        title: 'Mags',
-        path: '/dashboard/mags',
-        icon: <TvIcon />,
+        title: 'Active Codes',
+        path: '/dashboard/codes',
+        icon: <VpnKeyIcon />,
         children: [
-          { title: 'List', path: '/dashboard/mags/list' },
-          { title: 'Create', path: '/dashboard/mags/create' },
+          { title: 'List', path: '/dashboard/codes/list' },
+          { title: 'Create', path: '/dashboard/codes/add-code' },
         ],
       },
       {
-        title: 'Enigmas',
+        title: 'MAG Devices',
+        path: '/dashboard/mags',
+        icon: <SmartDisplayIcon />,
+        children: [
+          { title: 'List', path: '/dashboard/mags/list' },
+          // { title: 'Create', path: '/dashboard/mags/create' },
+          { title: 'Create', path: '/dashboard/mags/new' },
+        ],
+      },
+
+      {
+        title: 'Enigma Devices',
         path: '/dashboard/enigmas',
-        icon: <TvIcon />,
+        icon: <DevicesIcon />,
         children: [
           { title: 'List', path: '/dashboard/enigmas/list' },
-          { title: 'Create', path: '/dashboard/enigmas/create' },
+          // { title: 'Create', path: '/dashboard/enigmas/create' },
+          { title: 'Create', path: '/dashboard/enigmas/new' },
         ],
       },
       {
         title: 'Templates Bouquets',
         path: '/dashboard/templates',
-        icon: <ShoppingCartIcon />,
+        icon: <CategoryIcon />,
         children: [
           { title: 'List', path: '/dashboard/templates/list' },
           { title: 'Create', path: '/dashboard/templates/create' },
@@ -102,7 +117,7 @@ export const navConfig: NavGroup[] = [
       {
         title: 'Subresellers',
         path: '/dashboard/sub-resel',
-        icon: <PeopleIcon />,
+        icon: <GroupsIcon />,
         children: [
           { title: 'List', path: '/dashboard/sub-resel/list' },
           { title: 'Create', path: '/dashboard/sub-resel/add' },
@@ -111,7 +126,7 @@ export const navConfig: NavGroup[] = [
       {
         title: 'Billings',
         path: '/dashboard/payments',
-        icon: <ReceiptIcon />,
+        icon: <AccountBalanceWalletIcon />,
         children: [
           { title: 'Payments', path: '/dashboard/payments/list' },
           { title: 'Add Payment', path: '/dashboard/payments/add-payment' },
@@ -121,19 +136,11 @@ export const navConfig: NavGroup[] = [
           { title: 'Transfer Credit', path: '/dashboard/payments/add-transfer' },
         ],
       },
-      {
-        title: 'Codes',
-        path: '/dashboard/codes',
-        icon: <VpnKeyIcon />,
-        children: [
-          { title: 'List', path: '/dashboard/codes/list' },
-          { title: 'Create', path: '/dashboard/codes/add-code' },
-        ],
-      },
+
       {
         title: 'Account',
         path: '/dashboard/account',
-        icon: <AccountCircleIcon />,
+        icon: <PersonIcon />,
       },
     ],
   },

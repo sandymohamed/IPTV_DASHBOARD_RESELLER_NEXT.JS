@@ -8,7 +8,6 @@ import {
   Button,
   Chip,
   Stack as MuiStack,
-  Tooltip,
   Paper,
   Table,
   TableBody,
@@ -33,7 +32,6 @@ import {
 import { SelectChangeEvent } from '@mui/material/Select';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ToggleOnIcon from '@mui/icons-material/ToggleOn';
 import ToggleOffIcon from '@mui/icons-material/ToggleOff';
@@ -46,6 +44,7 @@ import LockOpenIcon from '@mui/icons-material/LockOpen';
 import CancelIcon from '@mui/icons-material/Cancel';
 import TvIcon from '@mui/icons-material/Tv';
 import AndroidIcon from '@mui/icons-material/Android';
+import ClearIcon from '@mui/icons-material/Clear';
 import Menu from '@mui/material/Menu';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -58,7 +57,6 @@ import {
 import { createDevice, createAndroidDevice } from '@/lib/services/deviceService';
 import { showToast } from '@/lib/utils/toast';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
-import ElapsedTimeCounter from './ElapsedTimeCounter';
 import { spliceLongText } from '@/components/hooks/useSpliceLongText';
 import Label from '@/components/Label';
 import { fTimestamp } from '@/lib/utils/formatTime';
@@ -82,15 +80,7 @@ const columns: readonly Column[] = [
       <Chip size="small" label={value > 0 ? 'Online' : 'Offline'} color={value > 0 ? 'success' : 'default'} />
     ),
   },
-  {
-    id: 'speed_Mbps',
-    label: 'Speed',
-    minWidth: 80,
-    align: 'center',
-    format: (value: number) => (
-      <Chip size="small" label={`${value || 0} Mbps`} color={value > 50 ? 'warning' : 'primary'} />
-    ),
-  },
+ 
   { id: 'username', label: 'User name', minWidth: 120 },
   { id: 'password', label: 'Password', minWidth: 100 },
   {
@@ -183,21 +173,6 @@ const columns: readonly Column[] = [
     format: (value: number, row: any) => (
       <Chip size="small" label={`${row.active_connections} / ${row.max_connections}`} color="primary" variant="outlined" />
     ),
-  },
-
-
-  {
-    id: 'watching',
-    label: 'Watching',
-    align: 'center',
-    format: (value: any, row: any) => (
-      <Typography variant="body2" color="text.secondary">
-        {row.stream_display_name}
-        {row.date_start && (
-          <ElapsedTimeCounter dateStart={row.date_start} />
-        )}
-      </Typography>
-    )
   },
 
   { id: 'user_ip', label: 'IP', align: 'center' },
@@ -365,20 +340,21 @@ export default function UserListClient({ initialUsers, totalCount = 0, initialEr
             </Select>
           </FormControl>
 
-          <Button
-            variant="outlined"
-            onClick={() => {
-              setSearchInput('');
-              updateSearchParams({
-                search: null,
-                active_connections: null,
-                is_trial: null,
-                page: 1
-              });
-            }}
-          >
-            Clear Filters
-          </Button>
+          {(currentSearch || currentActiveConnections || currentIsTrial) && (
+            <Button
+              variant="outlined"
+              startIcon={<ClearIcon />}
+              onClick={() => {
+                setSearchInput('');
+                startTransition(() => {
+                  router.push('/dashboard/user/list');
+                });
+              }}
+              disabled={isPending}
+            >
+              Clear Search
+            </Button>
+          )}
         </MuiStack>
       </Paper>
 

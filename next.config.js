@@ -13,17 +13,62 @@ const nextConfig = {
         // Optimize common imports
       },
     },
+    // Enable faster refresh
+    optimizeCss: true,
   },
   // Optimize dev server - keep pages in memory longer to reduce recompilation
   onDemandEntries: {
     // Period (in ms) where the server will keep pages in the buffer
-    maxInactiveAge: 60 * 1000, // Increased from 25s to 60s
+    maxInactiveAge: 300 * 1000, // Increased to 5 minutes
     // Number of pages that should be kept simultaneously without being disposed
-    pagesBufferLength: 5, // Increased from 2 to 5
+    pagesBufferLength: 25, // Increased to 25 pages
   },
   // Optimize bundle splitting
   webpack: (config, { isServer }) => {
     if (!isServer) {
+      // Exclude server-only packages from client bundle
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+        stream: false,
+        url: false,
+        zlib: false,
+        http: false,
+        https: false,
+        assert: false,
+        os: false,
+        path: false,
+      };
+
+      // Exclude mysql2 and other server-only packages from client bundle
+      // Only add externals if it's an array, otherwise create one
+      if (Array.isArray(config.externals)) {
+        config.externals.push({
+          'mysql2': 'commonjs mysql2',
+          'mysql2/promise': 'commonjs mysql2/promise',
+        });
+      } else if (config.externals) {
+        // If externals is a function or object, wrap it
+        const originalExternals = config.externals;
+        config.externals = [
+          originalExternals,
+          {
+            'mysql2': 'commonjs mysql2',
+            'mysql2/promise': 'commonjs mysql2/promise',
+          }
+        ];
+      } else {
+        config.externals = [
+          {
+            'mysql2': 'commonjs mysql2',
+            'mysql2/promise': 'commonjs mysql2/promise',
+          }
+        ];
+      }
+
       config.optimization.splitChunks = {
         chunks: 'all',
         cacheGroups: {

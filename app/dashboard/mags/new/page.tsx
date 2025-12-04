@@ -3,7 +3,7 @@ import MagsCreateForm from '@/components/dashboard/mags/MagsCreateForm';
 import { AuthFetchError } from '@/lib/server/fetchWithAuth';
 import { getServerSession } from '@/lib/auth/auth';
 import { getTemplatesList } from '@/app/api/templates/route';
-import { getCachedPackages } from '@/lib/services/packagesService';
+import { getCachedPackages } from '@/lib/services/packagesService.server';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,27 +14,33 @@ export default async function MagsCreatePage() {
     redirect('/auth/login?redirect=/dashboard/mags/new');
   }
 
+  // Fetch packages and templates in parallel for better performance
+  const [packagesResult, templatesResult] = await Promise.allSettled([
+    session?.user?.member_group_id
+      ? getCachedPackages(session.user.member_group_id)
+      : Promise.resolve([]),
+    getTemplatesList({ page: 1, pageSize: 100 }),
+  ]);
+
   let packages: any[] = [];
   let templates: any[] = [];
 
-  if (session?.user?.member_group_id) {
-    try {
-      packages = await getCachedPackages(session.user.member_group_id);
-    } catch (error) {
-      if (error instanceof AuthFetchError && (error as any).status === 401) {
-        redirect('/auth/login?redirect=/dashboard/mags/new');
-      }
-      packages = [];
+  // Handle packages result
+  if (packagesResult.status === 'fulfilled') {
+    packages = packagesResult.value || [];
+  } else {
+    const error = packagesResult.reason;
+    if (error instanceof AuthFetchError && (error as any).status === 401) {
+      redirect('/auth/login?redirect=/dashboard/mags/new');
     }
+    console.error('Error fetching packages:', error);
   }
 
-  // Fetch templates
-  try {
-    const templatesData = await getTemplatesList({ page: 1, pageSize: 100 });
-    templates = templatesData?.rows || [];
-  } catch (error) {
-    console.error('Error fetching templates:', error);
-    templates = [];
+  // Handle templates result
+  if (templatesResult.status === 'fulfilled') {
+    templates = templatesResult.value?.rows || [];
+  } else {
+    console.error('Error fetching templates:', templatesResult.reason);
   }
 
   return <MagsCreateForm packages={packages} templates={templates} />;

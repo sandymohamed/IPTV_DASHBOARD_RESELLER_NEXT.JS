@@ -1,11 +1,11 @@
 "use client";
 
-import { Tooltip, Typography } from "@mui/material";
+import { Tooltip, Box } from "@mui/material";
 import { InfoOutlined } from "@mui/icons-material";
 
 // Regular function for use in format functions (not a hook)
 export function spliceLongText(text: string, count: number) {
-    if (!text) return <span style={{ fontSize: "12px" }}>N/A</span>;
+    if (!text) return <span>N/A</span>;
     
     const isLongText = text.length > count;
     const slicedText = isLongText ? text.slice(0, count) : text;
@@ -14,13 +14,13 @@ export function spliceLongText(text: string, count: number) {
         <>
             {isLongText ? (
                 <Tooltip placement="top" title={text}>
-                    <Typography variant="caption" sx={{ display: "flex", flexDirection: "row" }}>
-                        <Typography sx={{ fontSize: '12px' }}>{slicedText} ...  </Typography>
-                        <InfoOutlined sx={{ cursor: "pointer", width: 12 }} />
-                    </Typography>
+                    <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+                        <span>{slicedText} ...</span>
+                        <InfoOutlined sx={{ cursor: "pointer", width: 12, height: 12 }} />
+                    </Box>
                 </Tooltip>
             ) : (
-                <span style={{ fontSize: "12px" }}>{slicedText}</span>
+                <span>{slicedText}</span>
             )}
         </>
     );
@@ -35,10 +35,10 @@ export function useSpliceLongText(text: string, count: number) {
         <>
             {isLongText ? (
                 <Tooltip placement="top" title={text}>
-                    <Typography variant="caption" sx={{ display: "flex", flexDirection: "row" }}>
-                        <Typography sx={{ fontSize: '12px' }}>{slicedText} ...  </Typography>
-                        <InfoOutlined sx={{ cursor: "pointer", width: 12 }} />
-                    </Typography>
+                    <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, fontSize: '12px' }}>
+                        <span>{slicedText} ...</span>
+                        <InfoOutlined sx={{ cursor: "pointer", width: 12, height: 12 }} />
+                    </Box>
                 </Tooltip>
             ) : (
                 <span style={{ fontSize: "12px" }}>{slicedText}</span>
