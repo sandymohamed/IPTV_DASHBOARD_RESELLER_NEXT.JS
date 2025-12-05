@@ -11,7 +11,6 @@ export default async function HomePage() {
       redirect('/auth/login');
     }
   } catch (error) {
-    console.log("error from home page", error);
     redirect('/auth/login');
   }
 }

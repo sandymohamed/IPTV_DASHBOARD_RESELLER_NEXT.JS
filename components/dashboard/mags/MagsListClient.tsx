@@ -179,19 +179,19 @@ const columns: readonly Column[] = [
       );
     },
   },
-  {
-    id: 'watching',
-    label: 'Watching',
-    align: 'center',
-    format: (value: any, row: any) => (
-      <Typography variant="body2" color="text.secondary">
-        {row.stream_display_name}
-        {row.date_start && (
-          <ElapsedTimeCounter dateStart={row.date_start} />
-        )}
-      </Typography>
-    )
-  },
+  // {
+  //   id: 'watching',
+  //   label: 'Watching',
+  //   align: 'center',
+  //   format: (value: any, row: any) => (
+  //     <Typography variant="body2" color="text.secondary">
+  //       {row.stream_display_name}
+  //       {row.date_start && (
+  //         <ElapsedTimeCounter dateStart={row.date_start} />
+  //       )}
+  //     </Typography>
+  //   )
+  // },
   { id: 'user_ip', label: 'IP', minWidth: 120, align: 'center' },
   {
     id: 'package_name',

@@ -27,25 +27,6 @@ export default async function TemplatesEditPage({ params }: { params: { id: stri
     }
 
     // Debug logging
-    if (process.env.NODE_ENV === 'development') {
-      console.log('📋 Template Edit Page - Data loaded:', {
-        templateId: params.id,
-        template: currentTemplate ? {
-          id: currentTemplate.id,
-          title: currentTemplate.title,
-          package: currentTemplate.package,
-          hasBouquets: !!currentTemplate.bouquets,
-          hasNewOrder: !!currentTemplate.new_order,
-        } : 'NOT FOUND',
-        packagesCount: packages.length,
-        firstPackage: packages[0] ? {
-          id: packages[0].id,
-          name: packages[0].package_name,
-          hasBouquetsData: !!packages[0].bouquetsdata,
-          bouquetsCount: Array.isArray(packages[0].bouquetsdata) ? packages[0].bouquetsdata.length : 0,
-        } : 'NO PACKAGES',
-      });
-    }
   } catch (error) {
     if (error instanceof AuthFetchError && (error as any).status === 401) {
       redirect('/auth/login?redirect=/dashboard/templates/edit/' + params.id);

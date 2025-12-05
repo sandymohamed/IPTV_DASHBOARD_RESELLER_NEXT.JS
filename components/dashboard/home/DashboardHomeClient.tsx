@@ -34,6 +34,7 @@ import LinkIcon from '@mui/icons-material/Link';
 import FlashOnIcon from '@mui/icons-material/FlashOn';
 import SearchIcon from '@mui/icons-material/Search';
 import { useDashboardUser } from '@/lib/contexts/DashboardUserContext';
+import { useLoading } from '@/lib/contexts/LoadingContext';
 import { signOut } from 'next-auth/react';
 import { fDate } from '@/lib/utils/formatTime';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
@@ -87,6 +88,7 @@ const expiredTableColumns = [
 
 export default function DashboardHomeClient({ stats, error }: DashboardHomeClientProps) {
   const { user } = useDashboardUser();
+  const { setLoading } = useLoading();
   const [expiredWeekPage, setExpiredWeekPage] = useState(0);
   const [expiredWeekRowsPerPage, setExpiredWeekRowsPerPage] = useState(10);
   const [expiredPage, setExpiredPage] = useState(0);
@@ -95,13 +97,14 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
   const [expiredFilter, setExpiredFilter] = useState('');
   const [isPending, startTransition] = useTransition();
   const handleReAuth = useCallback(() => {
+    setLoading(true);
     startTransition(async () => {
       await signOut({ 
         callbackUrl: '/auth/login',
         redirect: true 
       });
     });
-  }, [startTransition]);
+  }, [startTransition, setLoading]);
 
   // Filter expired week data
   const filteredExpiredWeek = useMemo(() => {
@@ -563,8 +566,8 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
           <Card sx={{ borderRadius: 2, boxShadow: 2, height: '100%' }}>
             <CardHeader title="User Distribution" />
             <CardContent>
-              <Box sx={{ height: 300, mb: 3 }}>
-                <ResponsiveContainer width="100%" height="100%">
+              <Box sx={{ height: 300, mb: 3, minHeight: 300 }}>
+                <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie
                       data={chartData}

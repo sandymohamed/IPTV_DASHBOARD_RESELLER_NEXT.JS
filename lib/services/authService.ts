@@ -27,28 +27,26 @@ export async function loginUser(credentials: {
 
         // 2. Validate required fields
         if (!username || !password) {
-            await loginTries(username, ipAddress)
+            loginTries(username, ipAddress).catch(() => {})
             throw new Error('Username and password are required')
         }
 
         // 3. Validate input length
         if (username.length > 30 || password.length > 30) {
-            await loginTries(username, ipAddress)
+            loginTries(username, ipAddress).catch(() => {})
             throw new Error('Input data too long')
         }
 
-        
         // 4. Sanitize username
         const sanitizedUsername = username.replace(/[^a-zA-Z0-9-]/gi, '')
 
-
         // 5. Check for same username/password
         if (username === password && username !== 'admin') {
-            await loginTries(sanitizedUsername, ipAddress)
+            loginTries(sanitizedUsername, ipAddress).catch(() => {})
             throw new Error('Login error. Please check admin name/password.')
         }
 
-        // 6. Query to fetch user data
+        // 6. Query to fetch user data (optimized - removed expensive subquery)
         const query = `
       SELECT 
         maa_admin.*, 
@@ -62,8 +60,7 @@ export async function loginUser(credentials: {
         member_groups.group_color, 
         member_groups.is_reseller, 
         member_groups.is_banned,  
-        member_groups.is_admin,
-        COALESCE((SELECT GROUP_CONCAT(sub.adminid) FROM maa_admin sub WHERE sub.father = maa_admin.adminid OR sub.adminid = maa_admin.adminid), '') AS resellers
+        member_groups.is_admin
       FROM maa_admin 
       LEFT JOIN member_groups 
         ON maa_admin.member_group_id = member_groups.group_id  
@@ -79,13 +76,13 @@ export async function loginUser(credentials: {
 
             // 7. Check for suspended accounts
             if (user.suspend === 1 || user.suspend === 2) {
-                await logAction('login', 'suspended', 'Tried to login to suspended account', sanitizedUsername)
+                logAction('login', 'suspended', 'Tried to login to suspended account', sanitizedUsername).catch(() => {})
                 throw new Error('Sorry: your account has been suspended.')
             }
 
             // 8. Check for reset codes level (level 4)
             if (user.level === 4) {
-                await logAction('login', 'reset_codes', '', sanitizedUsername)
+                logAction('login', 'reset_codes', '', sanitizedUsername).catch(() => {})
                 return {
                     success: false,
                     resetRequired: true,
@@ -98,28 +95,33 @@ export async function loginUser(credentials: {
             const hashedPassword = hashPassword(password)
 
             if (hashedPassword !== user.adm_password) {
-                await loginTries(sanitizedUsername, ipAddress)
-                await logAction('login', 'login_fail', 'Failed login attempt', sanitizedUsername)
+                // Non-blocking - don't wait for these
+                Promise.all([
+                    loginTries(sanitizedUsername, ipAddress),
+                    logAction('login', 'login_fail', 'Failed login attempt', sanitizedUsername)
+                ]).catch(() => {})
                 throw new Error('Login error. Please check admin name/password.')
             }
 
             // 10. SUCCESSFUL LOGIN
             const currentTime = Math.floor(Date.now() / 1000)
 
-            // Update last login
-            await db.query(
-                "UPDATE maa_admin SET lastlogin = ?, ipaddress = ?, user_agent = ? WHERE adminid = ?",
-                [currentTime, ipAddress, 'Next.js Server', user.adminid]
-            )
+            // Prepare user payload (do balance and updates in parallel)
+            const [balance, _] = await Promise.all([
+                getBalance(user.adminid),
+                // Update last login and cleanup in parallel
+                Promise.all([
+                    db.query(
+                        "UPDATE maa_admin SET lastlogin = ?, ipaddress = ?, user_agent = ? WHERE adminid = ?",
+                        [currentTime, ipAddress, 'Next.js Server', user.adminid]
+                    ),
+                    clearLoginTries(ipAddress)
+                ])
+            ])
 
-            // Log successful login
-            await logAction('login', 'login_success', 'Next.js Login', sanitizedUsername)
+            // Log successful login (non-blocking)
+            logAction('login', 'login_success', 'Next.js Login', sanitizedUsername).catch(() => {})
 
-            // Clean up login tries
-            await clearLoginTries(ipAddress)
-
-            // Prepare user payload
-            const balance = await getBalance(user.adminid)
             const userFormatted = formatUserData(user)
 
             const payload = {
@@ -142,14 +144,15 @@ export async function loginUser(credentials: {
             }
 
         } else {
-            // User not found
-            await loginTries(sanitizedUsername, ipAddress)
-            await logAction('login', 'login_fail', 'User not found', sanitizedUsername)
+            // User not found - non-blocking
+            Promise.all([
+                loginTries(sanitizedUsername, ipAddress),
+                logAction('login', 'login_fail', 'User not found', sanitizedUsername)
+            ]).catch(() => {})
             throw new Error('Login error. Please check admin name/password.')
         }
 
     } catch (err) {
-        console.error("Admin Login Error: ", err)
         throw err
     }
 }
@@ -199,9 +202,6 @@ export async function getUserAccount(adminid: number) {
             ip: '', // Will be set from request
             lastlogin: formattedUser.lastlogin
         }
-        console.log("sessionData:", sessionData)
-        console.log("formattedUser:", formattedUser)
-        console.log("balance:", balance)
 
         return {
             success: true,
@@ -210,7 +210,6 @@ export async function getUserAccount(adminid: number) {
         }
 
     } catch (err) {
-        console.error("My Account Error: ", err)
         throw err
     }
 }
@@ -264,12 +263,17 @@ async function clearLoginTries(ip: string) {
 }
 
 async function getBalance(adminid: number): Promise<number> {
-    // Implement your balance logic here
-    const rows: any = await db.query(
-        "SELECT SUM(credit - depit) AS bal FROM maa_trans WHERE admin = ?",
-        [adminid]
-    )
-    return rows.length > 0 && rows[0].bal ? parseFloat(rows[0].bal) : 0
+    try {
+        // Optimized query - use LIMIT 1 since we only need the sum
+        const rows: any = await db.query(
+            "SELECT COALESCE(SUM(credit - depit), 0) AS bal FROM maa_trans WHERE admin = ? LIMIT 1",
+            [adminid]
+        )
+        return rows.length > 0 && rows[0].bal !== null ? parseFloat(rows[0].bal) : 0
+    } catch {
+        // Return 0 if balance query fails (non-critical)
+        return 0
+    }
 }
 
 async function logAction(app: string, action: string, logData: string, admin: string = '', ip: string = '') {
@@ -277,9 +281,10 @@ async function logAction(app: string, action: string, logData: string, admin: st
         Object.entries(logData).map(([key, val]) => `${key} = ${val}`).join('\n') :
         logData
 
-    await db.query(
+    // Non-blocking log - don't wait for it
+    db.query(
         `INSERT INTO maa_logs_sys (dtime, admin_user, app, ip, action, the_log) 
      VALUES (NOW(), ?, ?, ?, ?, ?)`,
         [admin, app, ip, action, dataLog]
-    )
+    ).catch(() => {}) // Silently fail if logging fails
 }

@@ -21,7 +21,6 @@ export default async function InvoicesListPage({ searchParams }: {
       depit: searchParams.depit as string || undefined,
     });
 
-    console.log("data from direct function call", data);
     initialData = data.result || [];
     totalCount = data.total || 0;
 

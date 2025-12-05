@@ -10,7 +10,6 @@ async function MagsListContent({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  console.log("from mags list page")
   let initialMags: any[] = [];
   let totalCount = 0;
   let initialError: string | null = null;

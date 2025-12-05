@@ -54,35 +54,21 @@ function createPool(): mysql.Pool {
     keepAliveInitialDelay: 0,
   }
   
-  // Only log once on first pool creation
+  // Only initialize once
   if (!global.__dbPoolInitialized) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔌 Initializing database connection pool:', {
-        host: dbConfig.host,
-        database: dbConfig.database,
-      })
-    }
     global.__dbPoolInitialized = true;
   }
   
   const pool = mysql.createPool(dbConfig)
   global.__dbPool = pool;
   
-  // Test the connection once on pool creation (non-blocking)
+  // Test the connection once on pool creation (non-blocking, no logging)
   pool.getConnection()
     .then((connection) => {
-      if (process.env.NODE_ENV === 'development' && global.__dbPoolInitialized) {
-        console.log('✅ Database connection pool initialized successfully!')
-      }
       connection.release()
     })
-    .catch((error) => {
-      console.error('❌ Database connection failed:', {
-        code: error.code,
-        message: error.message,
-        host: dbConfig.host,
-        database: dbConfig.database
-      })
+    .catch(() => {
+      // Silently fail - connection will be retried on next query
     })
 
   return pool;
@@ -108,9 +94,7 @@ export const db = {
         
         connection = await getDbConnection();
         
-        // Check if connection is alive
-        await connection.ping();
-        
+        // Execute query directly (pool handles connection health)
         const [rows] = await connection.execute(sql, params);
         connection.release();
         return rows;

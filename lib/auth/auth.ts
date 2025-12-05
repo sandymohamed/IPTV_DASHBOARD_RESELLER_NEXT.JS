@@ -16,14 +16,11 @@ const authOptions: NextAuthOptions = {
       async authorize(credentials) {
 
         if (!credentials?.email || !credentials?.password) {
-          // console.error('🟠 [AUTH] Missing credentials')
           throw new Error('Email and password are required')
         }
 
         try {
-          // Get IP address for rate limiting
-          // TODO: Note: In production, you'd get this from headers
-          const ipAddress = '127.0.0.1' // You'll need to extract this properly
+          const ipAddress = '127.0.0.1'
 
           const result = await loginUser({
             email: credentials.email as string,
@@ -31,23 +28,19 @@ const authOptions: NextAuthOptions = {
             ipAddress
           })
 
-
           if (result.success && !result.resetRequired) {
-            // Generate JWT token for API calls (same as the login API route)
             if (!JWT_SECRET) {
-              console.error('🟠 [AUTH] JWT_SECRET is not configured')
               throw new Error('JWT_SECRET is not configured')
             }
 
-            const apiToken = jwt.sign(result.user, JWT_SECRET, { expiresIn: "24h" })
+            const apiToken = jwt.sign(result.user, JWT_SECRET, { expiresIn: "1h" })
 
-            // Store ALL user data with API token
             const userData = {
-              ...result.user, // Include all user data
+              ...result.user,
               id: result.user.adminid.toString(),
               email: result.user.adm_username,
               name: result.user.adm_username,
-              apiToken, // Store the API token for fetchWithAuth
+              apiToken,
             }
 
             return userData;
@@ -55,20 +48,10 @@ const authOptions: NextAuthOptions = {
 
           return null
         } catch (error: any) {
-          console.error('🟠 [AUTH] ❌ Error in authorize:', error)
-          console.error('🟠 [AUTH] Error details:', {
-            message: error?.message,
-            code: error?.code,
-            stack: error?.stack
-          })
-
-          // If it's a database connection error, provide a more helpful message
           if (error?.code === 'ECONNREFUSED') {
-            console.error('🟠 [AUTH] Database connection failed. Please check your database configuration.')
             throw new Error('Database connection failed. Please contact the administrator.')
           }
 
-          // For other errors, return null to show generic error
           return null
         }
       }
@@ -76,11 +59,11 @@ const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: 'jwt',
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 60 * 60, // 1 hour
   },
   jwt: {
     secret: JWT_SECRET,
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 60 * 60, // 1 hour
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -126,7 +109,7 @@ const authOptions: NextAuthOptions = {
           session.apiToken = token.apiToken as string
         } else if (token.user && JWT_SECRET) {
           // Generate apiToken on-demand from all user data
-          session.apiToken = jwt.sign(token.user, JWT_SECRET, { expiresIn: "24h" })
+          session.apiToken = jwt.sign(token.user, JWT_SECRET, { expiresIn: "1h" })
         }
 
       } else {

@@ -4,6 +4,28 @@ import axios from 'axios';
 import { API_BASE_URL } from '@/lib/config';
 import { useSession, getSession } from 'next-auth/react';
 
+// Global loading state management
+let loadingCount = 0;
+let setLoadingGlobal: ((loading: boolean) => void) | null = null;
+
+export function setLoadingHandler(handler: (loading: boolean) => void) {
+  setLoadingGlobal = handler;
+}
+
+function incrementLoading() {
+  loadingCount++;
+  if (setLoadingGlobal && loadingCount === 1) {
+    setLoadingGlobal(true);
+  }
+}
+
+function decrementLoading() {
+  loadingCount = Math.max(0, loadingCount - 1);
+  if (setLoadingGlobal && loadingCount === 0) {
+    setLoadingGlobal(false);
+  }
+}
+
 // Create Axios instance with authentication interceptor
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -12,9 +34,12 @@ const axiosInstance = axios.create({
   },
 });
 
-// Request interceptor to add Authorization header dynamically
+// Request interceptor to add Authorization header dynamically and show loading
 axiosInstance.interceptors.request.use(
   async (config) => {
+    // Show loading indicator
+    incrementLoading();
+    
     // Get session token dynamically for each request
     try {
       const session = await getSession();
@@ -23,17 +48,24 @@ axiosInstance.interceptors.request.use(
         config.headers.Authorization = `Bearer ${apiToken}`;
       }
     } catch (error) {
-      console.error('Failed to get session for axios request:', error);
+      // Silently fail
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    decrementLoading();
+    return Promise.reject(error);
+  }
 );
 
-// Response interceptor to handle errors
+// Response interceptor to handle errors and hide loading
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    decrementLoading();
+    return response;
+  },
   async (error) => {
+    decrementLoading();
     const originalRequest = error.config;
 
     // If 401, redirect to login
@@ -64,21 +96,29 @@ export function createAuthenticatedAxios(apiToken: string | undefined) {
 
   
 
-  // Request interceptor to add Authorization header
+  // Request interceptor to add Authorization header and show loading
   instance.interceptors.request.use(
     (config) => {
+      incrementLoading();
       if (apiToken) {
         config.headers.Authorization = `Bearer ${apiToken}`;
       }
       return config;
     },
-    (error) => Promise.reject(error)
+    (error) => {
+      decrementLoading();
+      return Promise.reject(error);
+    }
   );
 
-  // Response interceptor to handle errors
+  // Response interceptor to handle errors and hide loading
   instance.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      decrementLoading();
+      return response;
+    },
     async (error) => {
+      decrementLoading();
       const originalRequest = error.config;
 
       // If 401, redirect to login

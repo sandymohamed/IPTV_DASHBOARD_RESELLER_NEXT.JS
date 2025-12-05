@@ -20,6 +20,7 @@ import { Visibility, VisibilityOff, Info } from '@mui/icons-material';
 import { changePassword } from '@/lib/services/userService';
 import { showToast } from '@/lib/utils/toast';
 import { signOut } from 'next-auth/react';
+import { useLoading } from '@/lib/contexts/LoadingContext';
 
 const ChangePasswordSchema = Yup.object().shape({
   old_pass: Yup.string().required('Old Password is required'),
@@ -38,6 +39,7 @@ interface ChangePasswordFormData {
 }
 
 export default function AccountChangePassword() {
+  const { setLoading } = useLoading();
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -64,6 +66,7 @@ export default function AccountChangePassword() {
         showToast.success('Password changed successfully! Please login again.');
         reset();
         // Logout and redirect to login immediately
+        setLoading(true);
         await signOut({ callbackUrl: '/auth/login', redirect: true });
       } else {
         showToast.error(
@@ -76,7 +79,6 @@ export default function AccountChangePassword() {
         error?.message ||
         'Failed to change password. Please try again.';
       showToast.error(errorMessage);
-      console.error('Password change error:', error);
     }
   };
 

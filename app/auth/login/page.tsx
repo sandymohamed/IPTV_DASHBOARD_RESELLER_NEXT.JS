@@ -1,7 +1,7 @@
 // app/login/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -25,15 +25,14 @@ import { Visibility, VisibilityOff, Person, Lock, ErrorOutline } from '@mui/icon
 import { useTheme } from '@mui/material/styles'
 
 export default function LoginPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const searchParams = useSearchParams()
   const from = searchParams.get('from') || searchParams.get('callbackUrl') || '/dashboard'
-
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,70 +48,15 @@ export default function LoginPage() {
         callbackUrl: from,
       })
 
-
       if (result?.error) {
-        console.error('🔴 [LOGIN PAGE] Login failed with error:', result.error)
         setError('Invalid credentials. Please check your username and password.')
         setLoading(false)
       } else {
-
-        // Wait for session to be available, then redirect
-        const redirectWithSession = async () => {
-          let attempts = 0
-          const maxAttempts = 10 // Increased attempts
-
-
-          while (attempts < maxAttempts) {
-            try {
-
-              const sessionRes = await fetch('/api/auth/session', {
-                cache: 'no-store',
-                credentials: 'include',
-                headers: {
-                  'Cache-Control': 'no-cache'
-                }
-              })
-
-
-              const sessionData = await sessionRes.json()
-
-
-
-              if (sessionData?.user && (sessionData.user.adminid || sessionData.user.id)) {
-
-                // Small delay to ensure logs are visible
-                await new Promise(resolve => setTimeout(resolve, 100))
-
-                window.location.replace(from)
-                return
-              } else {
-                console.warn(`🟡 [LOGIN PAGE] Session check ${attempts + 1}: User data not ready yet`)
-                console.warn(`🟡 [LOGIN PAGE] Session data:`, sessionData)
-              }
-
-              attempts++
-              if (attempts < maxAttempts) {
-                await new Promise(resolve => setTimeout(resolve, 300))
-              }
-            } catch (err) {
-              attempts++
-              if (attempts < maxAttempts) {
-                await new Promise(resolve => setTimeout(resolve, 300))
-              }
-            }
-          }
-
-          // If session check failed, redirect anyway
-
-
-          window.location.replace(from)
-        }
-
-        // Start checking for session
-        redirectWithSession()
+        // Redirect immediately - NextAuth handles session
+        router.push(from)
+        router.refresh()
       }
     } catch (error) {
-      console.error('🔴 [LOGIN PAGE] Exception during login:', error)
       setError('An error occurred during login')
       setLoading(false)
     }

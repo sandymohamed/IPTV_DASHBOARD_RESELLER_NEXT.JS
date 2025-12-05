@@ -10,6 +10,8 @@ import { useRouter } from 'next/navigation';
 import { HEADER, NAV } from '@/lib/config';
 import ThemeToggle from '../ThemeToggle';
 import { signOut } from 'next-auth/react';
+import { useLoading } from '@/lib/contexts/LoadingContext';
+import { CircularProgress } from '@mui/material';
 
 interface HeaderProps {
   onOpenNav: () => void;
@@ -21,8 +23,10 @@ interface HeaderProps {
 function Header({ onOpenNav, onToggleNav, navCollapsed, user }: HeaderProps) {
   const theme = useTheme();
   const router = useRouter();
+  const { setLoading } = useLoading();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isPending, startTransition] = useTransition();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleMenuOpen = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -34,13 +38,18 @@ function Header({ onOpenNav, onToggleNav, navCollapsed, user }: HeaderProps) {
 
   const handleLogout = useCallback(async () => {
     handleMenuClose();
-    startTransition(async () => {
+    setIsLoggingOut(true);
+    setLoading(true);
+    try {
       await signOut({ 
         callbackUrl: '/auth/login',
         redirect: true 
       });
-    });
-  }, [handleMenuClose, startTransition]);
+    } catch (error) {
+      setIsLoggingOut(false);
+      setLoading(false);
+    }
+  }, [handleMenuClose, setLoading]);
 
   const handleProfile = useCallback(() => {
     handleMenuClose();
@@ -145,9 +154,18 @@ function Header({ onOpenNav, onToggleNav, navCollapsed, user }: HeaderProps) {
               <AccountCircleIcon sx={{ mr: 1, color: '#10b981' }} />
               Profile
             </MenuItem>
-            <MenuItem onClick={handleLogout} disabled={isPending}>
-              <LogoutIcon sx={{ mr: 1, color: '#ef4444' }} />
-              Logout
+            <MenuItem onClick={handleLogout} disabled={isPending || isLoggingOut}>
+              {isLoggingOut ? (
+                <>
+                  <CircularProgress size={16} sx={{ mr: 1, color: '#ef4444' }} />
+                  Logging out...
+                </>
+              ) : (
+                <>
+                  <LogoutIcon sx={{ mr: 1, color: '#ef4444' }} />
+                  Logout
+                </>
+              )}
             </MenuItem>
           </Menu>
 

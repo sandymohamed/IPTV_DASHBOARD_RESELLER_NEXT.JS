@@ -6,7 +6,7 @@ const nextConfig = {
     emotion: true,
   },
   experimental: {
-    optimizePackageImports: ['@mui/material', '@mui/icons-material'],
+    optimizePackageImports: ['@mui/material', '@mui/icons-material', 'recharts'],
     // Optimize dev compilation
     turbo: {
       resolveAlias: {
@@ -19,10 +19,14 @@ const nextConfig = {
   // Optimize dev server - keep pages in memory longer to reduce recompilation
   onDemandEntries: {
     // Period (in ms) where the server will keep pages in the buffer
-    maxInactiveAge: 300 * 1000, // Increased to 5 minutes
+    maxInactiveAge: 600 * 1000, // Increased to 10 minutes
     // Number of pages that should be kept simultaneously without being disposed
-    pagesBufferLength: 25, // Increased to 25 pages
+    pagesBufferLength: 50, // Increased to 50 pages
   },
+  // Reduce compilation overhead
+  swcMinify: true,
+  // Compress responses
+  compress: true,
   // Optimize bundle splitting
   webpack: (config, { isServer }) => {
     if (!isServer) {

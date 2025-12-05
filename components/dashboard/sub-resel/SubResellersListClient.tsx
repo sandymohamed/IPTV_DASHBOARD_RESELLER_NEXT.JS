@@ -107,9 +107,6 @@ interface SubResellersListClientProps {
 }
 
 export default function SubResellersListClient({ initialData, totalCount = 0, initialError = null }: SubResellersListClientProps) {
- 
- console.log('Rendering SubResellersListClient with initialData:', initialData);
- 
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
