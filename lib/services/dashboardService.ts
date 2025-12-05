@@ -5,6 +5,10 @@ export interface DashboardStats {
   total_mags: number;
   total_enigmas: number;
   online_users: number;
+  created_today?: number;
+  created_month?: number;
+  open_connections?: number;
+  active_subscriptions?: number;
   total_users?: number;
   [key: string]: any;
 }

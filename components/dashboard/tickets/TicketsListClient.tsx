@@ -14,9 +14,14 @@ import {
   TablePagination,
   TableRow,
   Typography,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import MessageIcon from '@mui/icons-material/Message';
 import { useRouter } from 'next/navigation';
+import { fDate } from '@/lib/utils/formatTime';
+import ReplyTicketModal from './ReplyTicketModal';
 
 type TicketRow = Record<string, any>;
 
@@ -31,6 +36,7 @@ type Column = {
 type TicketsListClientProps = {
   rows: TicketRow[];
   error?: string | null;
+  user?: any;
 };
 
 const columns: readonly Column[] = [
@@ -42,44 +48,59 @@ const columns: readonly Column[] = [
     format: (value: number) => (value === 1 ? 'Open' : 'Closed'),
   },
   {
-    id: 'dateadded',
+    id: 'date',
     label: 'Date',
-    minWidth: 150,
+    minWidth: 100,
     align: 'center',
     format: (value: string) => {
       if (!value) return 'N/A';
       try {
-        return new Date(value).toLocaleDateString();
+        return fDate(Number(value) * 1000);
       } catch (error) {
         return value;
       }
     },
   },
-  { id: 'owner', label: 'Owner', minWidth: 150 },
-  { id: 'subject', label: 'Subject', minWidth: 200 },
+  { id: 'member_id', label: 'Owner', minWidth: 100 },
+  { id: 'title', label: 'Subject', minWidth: 100 },
   {
-    id: 'last_reply',
+    id: 'message',
     label: 'Last Reply',
     minWidth: 150,
     align: 'center',
-    format: (value: string) => {
-      if (!value) return 'N/A';
-      try {
-        return new Date(value).toLocaleDateString();
-      } catch (error) {
-        return value;
-      }
-    },
+   
   },
-  { id: 'options', label: 'Options', minWidth: 100, align: 'center' },
+  {
+    id: 'options',
+    label: 'Options',
+    minWidth: 100,
+    align: 'center',
+  },
 ];
 
-export default function TicketsListClient({ rows, error }: TicketsListClientProps) {
+export default function TicketsListClient({ rows, error, user }: TicketsListClientProps) {
   const router = useRouter();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [replyModalOpen, setReplyModalOpen] = useState(false);
 
   const data = useMemo(() => rows ?? [], [rows]);
+
+  const handleOpenReplyModal = (ticket: TicketRow) => {
+    setSelectedTicket(ticket);
+    setReplyModalOpen(true);
+  };
+
+  const handleCloseReplyModal = () => {
+    setReplyModalOpen(false);
+    setSelectedTicket(null);
+  };
+
+  const handleReplyAdded = () => {
+    // Refresh the page data
+    router.refresh();
+  };
 
   return (
     <Box>
@@ -158,6 +179,26 @@ export default function TicketsListClient({ rows, error }: TicketsListClientProp
                     <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
                       {columns.map((column) => {
                         const value = row[column.id];
+                        // Special handling for options column
+                        if (column.id === 'options') {
+                          return (
+                            <TableCell
+                              key={column.id}
+                              align={column.align || 'left'}
+                              sx={{ whiteSpace: 'nowrap' }}
+                            >
+                              <Tooltip title="Add Reply">
+                                <IconButton
+                                  color="primary"
+                                  size="small"
+                                  onClick={() => handleOpenReplyModal(row)}
+                                >
+                                  <MessageIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </TableCell>
+                          );
+                        }
                         return (
                           <TableCell
                             key={column.id}
@@ -167,8 +208,8 @@ export default function TicketsListClient({ rows, error }: TicketsListClientProp
                             {column.format
                               ? column.format(value, row)
                               : value !== null && value !== undefined
-                              ? String(value)
-                              : 'N/A'}
+                                ? String(value)
+                                : 'N/A'}
                           </TableCell>
                         );
                       })}
@@ -199,6 +240,14 @@ export default function TicketsListClient({ rows, error }: TicketsListClientProp
           }}
         />
       </Paper>
+
+      <ReplyTicketModal
+        open={replyModalOpen}
+        onClose={handleCloseReplyModal}
+        ticket={selectedTicket}
+        user={user}
+        onReplyAdded={handleReplyAdded}
+      />
     </Box>
   );
 }

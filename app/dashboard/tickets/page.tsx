@@ -1,5 +1,7 @@
 import TicketsListClient from '@/components/dashboard/tickets/TicketsListClient';
 import { fetchWithAuth } from '@/lib/server/fetchWithAuth';
+import { getServerSession } from '@/lib/auth/auth';
+import { redirect } from 'next/navigation';
 
 type TicketsResponse = {
   data?: Array<Record<string, any>>;
@@ -9,6 +11,12 @@ type TicketsResponse = {
 export const dynamic = 'force-dynamic';
 
 export default async function TicketsPage() {
+  const session = await getServerSession();
+
+  if (!session?.user) {
+    redirect('/auth/login?redirect=/dashboard/tickets');
+  }
+
   let tickets: Array<Record<string, any>> = [];
   let errorMessage: string | null = null;
 
@@ -25,5 +33,5 @@ export default async function TicketsPage() {
         : 'We could not load the tickets list. Please try again later.';
   }
 
-  return <TicketsListClient rows={tickets} error={errorMessage} />;
+  return <TicketsListClient rows={tickets} error={errorMessage} user={session.user} />;
 }

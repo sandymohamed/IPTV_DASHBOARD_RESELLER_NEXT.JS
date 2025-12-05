@@ -14,7 +14,7 @@ const nextConfig = {
       },
     },
     // Enable faster refresh
-    optimizeCss: true,
+    // optimizeCss: true, // Disabled - requires critters package
   },
   // Optimize dev server - keep pages in memory longer to reduce recompilation
   onDemandEntries: {
