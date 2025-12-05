@@ -89,3 +89,40 @@ export const addCreditsToSubReseller = async (id: string, data: { credits: numbe
     throw error.response?.data || error;
   }
 };
+
+export const createSubresellerCredits = async (id: string, data: {
+  target_id: number;
+  admin_id: number;
+  amount: number;
+  type: string;
+  date: Date;
+  reason: string;
+}) => {
+  try {
+    const response = await axiosInstance.post(`/resellers/add_credits_subreseller/${id}`, data);
+    return response.data.result || response.data;
+  } catch (error: any) {
+    throw error.response?.data || error;
+  }
+};
+
+export const getSubresellerCreditsEdits = async (id: string, username: string) => {
+  try {
+    const response = await axiosInstance.get(`/credits_log/${id}`);
+    if (response.data.success) {
+      // Modify each element to add the target property
+      const modifiedData = response.data.result.map((element: any) => ({
+        ...element,
+        credits_log: {
+          ...element.credits_log,
+          target: username,
+        },
+      }));
+      return modifiedData;
+    }
+    return response.data.result || [];
+  } catch (error: any) {
+    console.error('Error getting subreseller credits edits:', error);
+    throw error.response?.data || error;
+  }
+};

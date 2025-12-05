@@ -31,6 +31,12 @@ import {
   Menu,
   InputAdornment,
   CircularProgress,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  FormLabel,
+  Card,
+  CardHeader,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -42,13 +48,14 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import PaymentIcon from '@mui/icons-material/Payment';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
-import { updateSubReseller, deleteSubReseller, getSubResellerById, suspendSubReseller, addCreditsToSubReseller, getAllMemberGroupsName } from '@/lib/services/subResellersService';
+import { updateSubReseller, deleteSubReseller, getSubResellerById, suspendSubReseller, addCreditsToSubReseller, getAllMemberGroupsName, createSubresellerCredits, getSubresellerCreditsEdits } from '@/lib/services/subResellersService';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { showToast } from '@/lib/utils/toast';
 import { useDashboardUser } from '@/lib/contexts/DashboardUserContext';
+import { fDate } from '@/lib/utils/formatTime';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
 
 interface Column {
@@ -446,10 +453,10 @@ function RowActions({ row }: { row: any }) {
           <EditIcon fontSize="small" sx={{ mr: 1 }} />
           Edit
         </MenuItem>
-        {/* <MenuItem onClick={() => { setOpenPayment(true); handleMenuClose(); }}>
+        <MenuItem onClick={() => { setOpenPayment(true); handleMenuClose(); }}>
           <PaymentIcon fontSize="small" sx={{ mr: 1 }} />
           Payment
-        </MenuItem> */}
+        </MenuItem>
         <MenuItem onClick={() => { setOpenSuspend(true); handleMenuClose(); }}>
           {suspend ? <LockOpenIcon fontSize="small" sx={{ mr: 1 }} /> : <LockIcon fontSize="small" sx={{ mr: 1 }} />}
           {suspend ? 'Unsuspend' : 'Suspend'}
@@ -478,18 +485,17 @@ function RowActions({ row }: { row: any }) {
         />
       )}
 
-      {/* {openPayment && (
+      {openPayment && (
         <PaymentCreditsDialog
           open={openPayment}
           onClose={() => setOpenPayment(false)}
-          subResellerId={id}
-          subResellerName={row.adm_username || row.userName}
+          currentUser={row}
           onSaved={() => {
             setOpenPayment(false);
             router.refresh();
           }}
         />
-      )} */}
+      )}
 
       {openSuspend && (
         <SuspendDialog
@@ -657,43 +663,211 @@ function EditSubResellerDialog({ open, onClose, subResellerId, onSaved }: { open
   );
 }
 
-// function PaymentCreditsDialog({ open, onClose, subResellerId, subResellerName, onSaved }: { open: boolean; onClose: () => void; subResellerId: string | number; subResellerName: string; onSaved: () => void | Promise<void> }) {
-//   const { register, handleSubmit, formState: { isSubmitting }, reset } = useForm<{ credits: number; notes?: string }>({
-//     defaultValues: { credits: 0, notes: '' },
-//   });
+type PaymentCreditsForm = {
+  credit: number;
+  reason: string;
+  type: string;
+};
 
-//   useEffect(() => {
-//     if (open) {
-//       reset({ credits: 0, notes: '' });
-//     }
-//   }, [open, reset]);
+const paymentCreditsSchema: yup.ObjectSchema<PaymentCreditsForm> = yup
+  .object({
+    credit: yup.number().required('Credit is required').min(0, 'Credit must be positive'),
+    reason: yup.string().required('Reason is required'),
+    type: yup.string().required('Type is required'),
+  })
+  .required();
 
-//   const onSubmit = async (data: { credits: number; notes?: string }) => {
-//     try {
-//       await addCreditsToSubReseller(String(subResellerId), data);
-//       showToast.success(`Credits added successfully to ${subResellerName}`);
-//       await onSaved();
-//     } catch (error: any) {
-//       showToast.error(error?.message || 'Failed to add credits');
-//     }
-//   };
+function PaymentCreditsDialog({ open, onClose, currentUser, onSaved }: { open: boolean; onClose: () => void; currentUser: any; onSaved: () => void | Promise<void> }) {
+  const { user } = useDashboardUser();
+  const [credits, setCredits] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { register, handleSubmit, formState: { isSubmitting }, reset, control } = useForm<PaymentCreditsForm>({
+    resolver: yupResolver(paymentCreditsSchema),
+    defaultValues: { credit: 0, reason: '', type: '' },
+  });
 
-//   return (
-//     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-//       <DialogTitle>Add Credits to {subResellerName}</DialogTitle>
-//       <DialogContent sx={{ pt: 2 }}>
-//         <MuiStack spacing={2}>
-//           <TextField label="Credits" type="number" {...register('credits', { valueAsNumber: true })} fullWidth required />
-//           <TextField label="Notes" {...register('notes')} fullWidth multiline rows={3} />
-//         </MuiStack>
-//       </DialogContent>
-//       <DialogActions>
-//         <Button onClick={onClose} disabled={isSubmitting}>Cancel</Button>
-//         <Button onClick={handleSubmit(onSubmit)} variant="contained" disabled={isSubmitting}>Add Credits</Button>
-//       </DialogActions>
-//     </Dialog>
-//   );
-// }
+  useEffect(() => {
+    if (open && currentUser) {
+      reset({ credit: 0, reason: '', type: '' });
+      handleGetData();
+    }
+  }, [open, currentUser, reset]);
+
+  const handleGetData = async () => {
+    if (!currentUser?.adminid) return;
+    try {
+      const data = await getSubresellerCreditsEdits(String(currentUser.adminid), currentUser.adm_username || '');
+      setCredits(data || []);
+    } catch (error) {
+      console.error('Failed to fetch credits history:', error);
+      setCredits([]);
+    }
+  };
+
+  const onSubmit = async (data: PaymentCreditsForm) => {
+    if (!currentUser?.adminid || !user?.id) return;
+
+    const { type, credit, reason } = data;
+    const admin = user.id;
+
+    // Validation logic from React version
+    if (type === 'recovery' && (currentUser.balance || currentUser.credits || 0) - credit < 0) {
+      showToast.warning('Reseller Credits is not allowed to own this!');
+      return;
+    }
+
+    if (type === 'payment' && (user.credits || user.balance || 0) - credit < 0) {
+      showToast.warning('Credits is not allowed to own this subreseller!');
+      return;
+    }
+
+    if (credit < 0) {
+      showToast.warning('Credits is not allowed, please insert positive values!');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await createSubresellerCredits(String(currentUser.adminid), {
+        target_id: currentUser.adminid,
+        admin_id: admin,
+        amount: credit,
+        type,
+        date: new Date(),
+        reason,
+      });
+      
+      showToast.success('Credits Added Successfully!');
+      reset();
+      await handleGetData();
+      await onSaved();
+    } catch (error: any) {
+      showToast.error(error?.message || "Can't add Credit, Please try again!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const creditsTableColumns = [
+    { id: 'Admin', label: 'Admin', minWidth: 120 },
+    { id: 'Target', label: 'Target', minWidth: 120 },
+    { id: 'Amount', label: 'Amount', minWidth: 100, align: 'right' as const },
+    { id: 'Date', label: 'Date', minWidth: 150 },
+    { id: 'Reason', label: 'Reason', minWidth: 200 },
+  ];
+
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+      <DialogTitle>Reseller Credits - {currentUser?.adm_username || currentUser?.userName || 'N/A'}</DialogTitle>
+      <DialogContent sx={{ pt: 2 }}>
+        <MuiStack spacing={3}>
+          <Box>
+            <Typography variant="h6" sx={{ mb: 2 }}>Add Credits</Typography>
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <MuiStack spacing={2}>
+                <TextField
+                  label="Amount"
+                  type="number"
+                  {...register('credit', { valueAsNumber: true })}
+                  fullWidth
+                  required
+                  inputProps={{ min: 0, step: 0.01 }}
+                />
+                <TextField
+                  label="Reason"
+                  {...register('reason')}
+                  fullWidth
+                  required
+                  multiline
+                  rows={3}
+                />
+                <FormControl component="fieldset" required>
+                  <FormLabel component="legend">Type</FormLabel>
+                  <Controller
+                    name="type"
+                    control={control}
+                    render={({ field }) => (
+                      <RadioGroup {...field} row>
+                        <FormControlLabel value="payment" control={<Radio />} label="Payment" />
+                        <FormControlLabel value="recovery" control={<Radio />} label="Recovery" />
+                      </RadioGroup>
+                    )}
+                  />
+                </FormControl>
+                <Button
+                  type="submit"
+                  variant="outlined"
+                  disabled={isSubmitting || loading}
+                  sx={{ mt: 2 }}
+                >
+                  {isSubmitting || loading ? 'Submitting...' : 'Submit'}
+                </Button>
+              </MuiStack>
+            </form>
+          </Box>
+
+          <Box>
+            <Card>
+              <CardHeader title="Credits History" />
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      {creditsTableColumns.map((column) => (
+                        <TableCell
+                          key={column.id}
+                          align={column.align || 'left'}
+                          sx={{ fontWeight: 600, bgcolor: 'background.default' }}
+                        >
+                          {column.label}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {credits.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={creditsTableColumns.length} align="center" sx={{ py: 3 }}>
+                          No credits history available
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      credits.map((item: any, index: number) => {
+                        const creditLog = item.credits_log || item;
+                        return (
+                          <TableRow key={index} hover>
+                            <TableCell>{creditLog.admin || creditLog.Admin || 'N/A'}</TableCell>
+                            <TableCell>{creditLog.target || creditLog.Target || currentUser?.adm_username || 'N/A'}</TableCell>
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={creditLog.amount || creditLog.Amount || 0}
+                                color={(creditLog.amount || creditLog.Amount || 0) >= 0 ? 'success' : 'error'}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              {creditLog.date ? fDate(new Date(creditLog.date)) : creditLog.Date || 'N/A'}
+                            </TableCell>
+                            <TableCell>{creditLog.reason || creditLog.Reason || '-'}</TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Card>
+          </Box>
+        </MuiStack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} disabled={isSubmitting || loading}>
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
 
 function SuspendDialog({ open, onClose, onSuspend, isSuspended }: { open: boolean; onClose: () => void; onSuspend: (action: string) => void; isSuspended: boolean }) {
   return (

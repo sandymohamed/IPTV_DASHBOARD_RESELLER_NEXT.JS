@@ -9,6 +9,20 @@ export interface DashboardStats {
   created_month?: number;
   open_connections?: number;
   active_subscriptions?: number;
+  expired_week?: Array<{
+    id: number;
+    username: string;
+    exp_date: number;
+    reseller_notes?: string;
+    type?: string;
+  }>;
+  expired?: Array<{
+    id: number;
+    username: string;
+    exp_date: number;
+    reseller_notes?: string;
+    type?: string;
+  }>;
   total_users?: number;
   [key: string]: any;
 }

@@ -6,9 +6,9 @@ import {
   Typography,
   Card,
   CardContent,
+  CardHeader,
   Grid,
   Alert,
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -17,6 +17,11 @@ import {
   TablePagination,
   TableRow,
   Button,
+  TextField,
+  InputAdornment,
+  Chip,
+  Avatar,
+  Stack,
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
 import DevicesIcon from '@mui/icons-material/Devices';
@@ -27,8 +32,11 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import LinkIcon from '@mui/icons-material/Link';
 import FlashOnIcon from '@mui/icons-material/FlashOn';
+import SearchIcon from '@mui/icons-material/Search';
 import { useDashboardUser } from '@/lib/contexts/DashboardUserContext';
 import { signOut } from 'next-auth/react';
+import { fDate } from '@/lib/utils/formatTime';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 export interface DashboardStats {
   total_lines: number;
@@ -39,6 +47,20 @@ export interface DashboardStats {
   created_month?: number;
   open_connections?: number;
   active_subscriptions?: number;
+  expired_week?: Array<{
+    id: number;
+    username: string;
+    exp_date: number;
+    reseller_notes?: string;
+    type?: string;
+  }>;
+  expired?: Array<{
+    id: number;
+    username: string;
+    exp_date: number;
+    reseller_notes?: string;
+    type?: string;
+  }>;
   [key: string]: any;
 }
 
@@ -47,24 +69,30 @@ interface DashboardHomeClientProps {
   error?: string | null;
 }
 
-interface TableData {
-  name: string;
-  total: number;
-  online: number;
-  percentage: number;
+interface ExpiredUser {
+  id: number;
+  username: string;
+  exp_date: number;
+  reseller_notes?: string;
+  type?: string;
 }
 
-const columns = [
-  { id: 'name', label: 'User Type', minWidth: 170 },
-  { id: 'total', label: 'Total Users', minWidth: 170, align: 'right' as const },
-  { id: 'online', label: 'Online Users', minWidth: 170, align: 'right' as const },
-  { id: 'percentage', label: 'Online %', minWidth: 170, align: 'right' as const },
+const expiredTableColumns = [
+  { id: 'ID', label: 'ID', minWidth: 80 },
+  { id: 'Type', label: 'Type', minWidth: 100 },
+  { id: 'username', label: 'Username', minWidth: 150 },
+  { id: 'Date', label: 'Date', minWidth: 150 },
+  { id: 'Notes', label: 'Notes', minWidth: 200 },
 ];
 
 export default function DashboardHomeClient({ stats, error }: DashboardHomeClientProps) {
   const { user } = useDashboardUser();
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [expiredWeekPage, setExpiredWeekPage] = useState(0);
+  const [expiredWeekRowsPerPage, setExpiredWeekRowsPerPage] = useState(10);
+  const [expiredPage, setExpiredPage] = useState(0);
+  const [expiredRowsPerPage, setExpiredRowsPerPage] = useState(10);
+  const [expiredWeekFilter, setExpiredWeekFilter] = useState('');
+  const [expiredFilter, setExpiredFilter] = useState('');
   const [isPending, startTransition] = useTransition();
   const handleReAuth = useCallback(() => {
     startTransition(async () => {
@@ -75,56 +103,76 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
     });
   }, [startTransition]);
 
-  const tableRows = useMemo<TableData[]>(() => {
-    if (!stats) return [];
+  // Filter expired week data
+  const filteredExpiredWeek = useMemo(() => {
+    if (!stats?.expired_week) return [];
+    if (!expiredWeekFilter) return stats.expired_week;
+    return stats.expired_week.filter((item) =>
+      item.username?.toLowerCase().includes(expiredWeekFilter.toLowerCase())
+    );
+  }, [stats?.expired_week, expiredWeekFilter]);
 
-    const totalUsers =
-      (stats.total_lines || 0) + (stats.total_mags || 0) + (stats.total_enigmas || 0);
-
-    const baseRows: TableData[] = [
-      {
-        name: 'Lines',
-        total: stats.total_lines || 0,
-        online: 0,
-        percentage: 0,
-      },
-      {
-        name: 'MAG Devices',
-        total: stats.total_mags || 0,
-        online: 0,
-        percentage: 0,
-      },
-      {
-        name: 'Enigma Devices',
-        total: stats.total_enigmas || 0,
-        online: 0,
-        percentage: 0,
-      },
-    ];
-
-    const onlineUsers = stats.online_users || 0;
-    if (totalUsers > 0) {
-      baseRows.forEach((row) => {
-        row.online = Math.round((onlineUsers * row.total) / totalUsers);
-        row.percentage = row.total > 0 ? (row.online / row.total) * 100 : 0;
-      });
-    }
-
-    return baseRows;
-  }, [stats]);
+  // Filter expired data
+  const filteredExpired = useMemo(() => {
+    if (!stats?.expired) return [];
+    if (!expiredFilter) return stats.expired;
+    return stats.expired.filter((item) =>
+      item.username?.toLowerCase().includes(expiredFilter.toLowerCase())
+    );
+  }, [stats?.expired, expiredFilter]);
 
   const totalUsers =
     (stats?.total_lines || 0) + (stats?.total_mags || 0) + (stats?.total_enigmas || 0);
   const onlinePercentage =
     totalUsers > 0 ? Math.round(((stats?.online_users || 0) / totalUsers) * 100) : 0;
 
-  const handleChangePage = (_event: unknown, newPage: number) => {
-    setPage(newPage);
+  // Chart data for pie chart
+  const chartData = useMemo(() => {
+    if (!stats) return [];
+    return [
+      {
+        name: 'Lines',
+        value: stats.total_lines || 0,
+        color: '#667eea',
+        icon: <PeopleIcon />,
+      },
+      {
+        name: 'MAG Devices',
+        value: stats.total_mags || 0,
+        color: '#f5576c',
+        icon: <DevicesIcon />,
+      },
+      {
+        name: 'Enigma Devices',
+        value: stats.total_enigmas || 0,
+        color: '#00f2fe',
+        icon: <TvIcon />,
+      },
+      {
+        name: 'Online Users',
+        value: stats.online_users || 0,
+        color: '#43e97b',
+        icon: <AccountTreeIcon />,
+      },
+    ];
+  }, [stats]);
+
+  const handleExpiredWeekPageChange = (_event: unknown, newPage: number) => {
+    setExpiredWeekPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+  const handleExpiredWeekRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setExpiredWeekRowsPerPage(+event.target.value);
+    setExpiredWeekPage(0);
+  };
+
+  const handleExpiredPageChange = (_event: unknown, newPage: number) => {
+    setExpiredPage(newPage);
+  };
+
+  const handleExpiredRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setExpiredRowsPerPage(+event.target.value);
+    setExpiredPage(0);
   };
 
   if (error === 'SESSION_EXPIRED') {
@@ -412,95 +460,256 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
         </Grid>
       </Grid>
 
-      <Paper 
-        sx={{ 
-          width: '100%', 
-          overflow: 'hidden',
-          borderRadius: 2,
-          boxShadow: 2,
-        }}
-      >
-        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            User Statistics Overview
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Detailed breakdown of your user base
-          </Typography>
-        </Box>
-        <TableContainer sx={{ maxHeight: 440 }}>
-          <Table stickyHeader aria-label="dashboard statistics table">
-            <TableHead>
-              <TableRow>
-                {columns.map((column) => (
-                  <TableCell 
-                    key={column.id} 
-                    align={column.align} 
-                    style={{ minWidth: column.minWidth }}
-                    sx={{ 
-                      fontWeight: 600,
-                      bgcolor: 'background.default',
-                    }}
-                  >
-                    {column.label}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {tableRows
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => (
-                  <TableRow 
-                    hover 
-                    role="checkbox" 
-                    tabIndex={-1} 
-                    key={row.name}
-                    sx={{
-                      '&:nth-of-type(odd)': {
-                        bgcolor: 'action.hover',
-                      },
-                    }}
-                  >
-                    <TableCell sx={{ fontWeight: 500 }}>{row.name}</TableCell>
-                    <TableCell align="right">{row.total.toLocaleString('en-US')}</TableCell>
-                    <TableCell align="right">
-                      <Typography 
-                        component="span" 
-                        sx={{ 
-                          color: row.online > 0 ? 'success.main' : 'text.secondary',
-                          fontWeight: 600 
-                        }}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Expiring in 1 week table */}
+        <Grid item xs={12} md={8}>
+          <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
+            <CardHeader title="Expiring in 1 week" />
+            <Box sx={{ px: 2, pb: 2 }}>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Search by username..."
+                value={expiredWeekFilter}
+                onChange={(e) => {
+                  setExpiredWeekFilter(e.target.value);
+                  setExpiredWeekPage(0);
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ mb: 2 }}
+              />
+            </Box>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    {expiredTableColumns.map((column) => (
+                      <TableCell
+                        key={column.id}
+                        align="center"
+                        sx={{ fontWeight: 600, bgcolor: 'background.default' }}
                       >
-                        {row.online.toLocaleString('en-US')}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography 
-                        component="span" 
-                        sx={{ 
-                          color: row.percentage > 50 ? 'success.main' : row.percentage > 25 ? 'warning.main' : 'text.secondary',
-                          fontWeight: 600 
-                        }}
-                      >
-                        {`${row.percentage.toFixed(1)}%`}
-                      </Typography>
-                    </TableCell>
+                        {column.label}
+                      </TableCell>
+                    ))}
                   </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredExpiredWeek.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={expiredTableColumns.length} align="center" sx={{ py: 3 }}>
+                        No data available
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredExpiredWeek
+                      .slice(
+                        expiredWeekPage * expiredWeekRowsPerPage,
+                        expiredWeekPage * expiredWeekRowsPerPage + expiredWeekRowsPerPage
+                      )
+                      .map((row) => (
+                        <TableRow
+                          hover
+                          key={row.id}
+                          sx={{
+                            borderBottom: '2px solid',
+                            borderColor: 'divider',
+                            '&:nth-of-type(odd)': {
+                              bgcolor: 'action.hover',
+                            },
+                          }}
+                        >
+                          <TableCell align="center" sx={{ typography: 'caption' }}>
+                            {row.id}
+                          </TableCell>
+                          <TableCell align="center" sx={{ typography: 'caption' }}>
+                            <Chip label={row.type || 'M3U'} color="primary" size="small" />
+                          </TableCell>
+                          <TableCell align="center" sx={{ typography: 'caption' }}>
+                            {row.username}
+                          </TableCell>
+                          <TableCell align="center" sx={{ typography: 'caption' }}>
+                            {row.exp_date ? fDate(row.exp_date * 1000) : 'N/A'}
+                          </TableCell>
+                          <TableCell align="center" sx={{ typography: 'caption' }}>
+                            {row.reseller_notes || '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <TablePagination
+              rowsPerPageOptions={[10, 25, 100]}
+              component="div"
+              count={filteredExpiredWeek.length}
+              rowsPerPage={expiredWeekRowsPerPage}
+              page={expiredWeekPage}
+              onPageChange={handleExpiredWeekPageChange}
+              onRowsPerPageChange={handleExpiredWeekRowsPerPageChange}
+            />
+          </Card>
+        </Grid>
+
+        {/* Chart */}
+        <Grid item xs={12} md={4}>
+          <Card sx={{ borderRadius: 2, boxShadow: 2, height: '100%' }}>
+            <CardHeader title="User Distribution" />
+            <CardContent>
+              <Box sx={{ height: 300, mb: 3 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Box>
+              <Stack spacing={2}>
+                {chartData.map((item) => (
+                  <Stack key={item.name} direction="row" spacing={2} alignItems="center">
+                    <Avatar
+                      sx={{
+                        bgcolor: 'background.neutral',
+                        width: 48,
+                        height: 48,
+                        borderRadius: 1.5,
+                        color: item.color,
+                      }}
+                    >
+                      {item.icon}
+                    </Avatar>
+                    <Stack spacing={0.5} flexGrow={1}>
+                      <Typography variant="subtitle2">{item.name}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {totalUsers} total users
+                      </Typography>
+                    </Stack>
+                    <Typography variant="subtitle2">{item.value.toLocaleString()}</Typography>
+                  </Stack>
                 ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
-          component="div"
-          count={tableRows.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Paper>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Expired table */}
+        <Grid item xs={12}>
+          <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
+            <CardHeader title="Expired" />
+            <Box sx={{ px: 2, pb: 2 }}>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Search by username..."
+                value={expiredFilter}
+                onChange={(e) => {
+                  setExpiredFilter(e.target.value);
+                  setExpiredPage(0);
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ mb: 2 }}
+              />
+            </Box>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    {expiredTableColumns.map((column) => (
+                      <TableCell
+                        key={column.id}
+                        align="center"
+                        sx={{ fontWeight: 600, bgcolor: 'background.default' }}
+                      >
+                        {column.label}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredExpired.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={expiredTableColumns.length} align="center" sx={{ py: 3 }}>
+                        No data available
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredExpired
+                      .slice(
+                        expiredPage * expiredRowsPerPage,
+                        expiredPage * expiredRowsPerPage + expiredRowsPerPage
+                      )
+                      .map((row) => (
+                        <TableRow
+                          hover
+                          key={row.id}
+                          sx={{
+                            borderBottom: '2px solid',
+                            borderColor: 'divider',
+                            '&:nth-of-type(odd)': {
+                              bgcolor: 'action.hover',
+                            },
+                          }}
+                        >
+                          <TableCell align="center" sx={{ typography: 'caption' }}>
+                            {row.id}
+                          </TableCell>
+                          <TableCell align="center" sx={{ typography: 'caption' }}>
+                            <Chip label={row.type || 'M3U'} color="error" size="small" />
+                          </TableCell>
+                          <TableCell align="center" sx={{ typography: 'caption' }}>
+                            {row.username}
+                          </TableCell>
+                          <TableCell align="center" sx={{ typography: 'caption' }}>
+                            {row.exp_date ? fDate(row.exp_date * 1000) : 'N/A'}
+                          </TableCell>
+                          <TableCell align="center" sx={{ typography: 'caption' }}>
+                            {row.reseller_notes || '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <TablePagination
+              rowsPerPageOptions={[10, 25, 100]}
+              component="div"
+              count={filteredExpired.length}
+              rowsPerPage={expiredRowsPerPage}
+              page={expiredPage}
+              onPageChange={handleExpiredPageChange}
+              onRowsPerPageChange={handleExpiredRowsPerPageChange}
+            />
+          </Card>
+        </Grid>
+      </Grid>
     </Box>
   );
 }
