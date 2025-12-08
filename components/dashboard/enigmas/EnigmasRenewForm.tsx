@@ -114,9 +114,25 @@ export default function EnigmasRenewForm({
 
   // Initialize template if enigma has one
   useEffect(() => {
-    if (currentEnigma?.template_id) {
+    if (currentEnigma?.template_id !== undefined && currentEnigma?.template_id !== null) {
       setSelectedTemplateId(currentEnigma.template_id.toString());
-      setCustomBouquet(true); // Template requires custom toggle ON
+      // If template_id is 0, set custom to false (show drag-drop bouquets)
+      if (currentEnigma.template_id === 0) {
+        setCustomBouquet(false);
+        // Load enigma's current bouquets if they have any
+        if (currentEnigma?.bouquet) {
+          try {
+            const bouquets = Array.isArray(currentEnigma.bouquet) 
+              ? currentEnigma.bouquet 
+              : (typeof currentEnigma.bouquet === 'string' ? JSON.parse(currentEnigma.bouquet) : []);
+            setSelectedBouquets(bouquets || []);
+          } catch (err) {
+            console.error('Error parsing bouquets:', err);
+          }
+        }
+      } else {
+        setCustomBouquet(true); // Template exists and is not 0, show template select
+      }
     } else {
       // Load enigma's current bouquets if they have any
       if (currentEnigma?.bouquet) {
@@ -138,7 +154,7 @@ export default function EnigmasRenewForm({
       pkg: currentEnigma?.pkg?.toString() || '',
       package_id_type: '0',
       template_id: currentEnigma?.template_id?.toString() || '',
-      custom: !currentEnigma?.template_id,
+      custom: currentEnigma?.template_id !== undefined && currentEnigma?.template_id !== null && currentEnigma?.template_id !== 0,
       reseller_notes: currentEnigma?.reseller_notes || '',
     }),
     [currentEnigma]

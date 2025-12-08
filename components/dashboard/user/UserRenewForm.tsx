@@ -104,7 +104,7 @@ export default function UserRenewForm({
       pkg: currentUser?.pkg?.toString() || '',
       package_id_type: '0',
       template_id: currentUser?.template_id?.toString() || '',
-      custom: !currentUser?.template_id,
+      custom: currentUser?.template_id !== undefined && currentUser?.template_id !== null && currentUser?.template_id !== 0,
       reseller_notes: currentUser?.reseller_notes || '',
     }),
     [currentUser]
@@ -132,9 +132,25 @@ export default function UserRenewForm({
 
   // Initialize template if user has one
   useEffect(() => {
-    if (currentUser?.template_id) {
+    if (currentUser?.template_id !== undefined && currentUser?.template_id !== null) {
       setSelectedTemplateId(currentUser.template_id.toString());
-      setCustomBouquet(true); // Template requires custom toggle ON
+      // If template_id is 0, set custom to false (show drag-drop bouquets)
+      if (currentUser.template_id === 0) {
+        setCustomBouquet(false);
+        // Load user's current bouquets if they have any
+        if (currentUser?.bouquet) {
+          try {
+            const bouquets = Array.isArray(currentUser.bouquet) 
+              ? currentUser.bouquet 
+              : (typeof currentUser.bouquet === 'string' ? JSON.parse(currentUser.bouquet) : []);
+            setSelectedBouquets(bouquets || []);
+          } catch (err) {
+            console.error('Error parsing bouquets:', err);
+          }
+        }
+      } else {
+        setCustomBouquet(true); // Template exists and is not 0, show template select
+      }
     } else {
       // Load user's current bouquets if they have any
       if (currentUser?.bouquet) {

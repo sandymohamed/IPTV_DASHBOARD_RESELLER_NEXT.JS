@@ -99,9 +99,14 @@ export default function MagsEditForm({ currentMag, templates = [] }: MagsEditFor
       }
 
       // Set template if exists
-      if (currentMag.template_id) {
+      if (currentMag.template_id !== undefined && currentMag.template_id !== null) {
         setSelectedTemplateId(currentMag.template_id.toString());
-        setCustomBouquet(false); // Template mode = custom bouquet OFF
+        // If template_id is 0, set custom to false (show drag-drop bouquets)
+        if (currentMag.template_id === 0) {
+          setCustomBouquet(false);
+        } else {
+          setCustomBouquet(true);
+        }
       }
 
       // Load bouquets from package if available
@@ -168,7 +173,7 @@ export default function MagsEditForm({ currentMag, templates = [] }: MagsEditFor
       forced_country: currentMag?.forced_country || 'ALL',
       reseller_notes: currentMag?.reseller_notes || '',
       template_id: currentMag?.template_id?.toString() || '',
-      custom: !currentMag?.template_id, // If template_id exists, custom=false (template mode)
+      custom: currentMag?.template_id !== undefined && currentMag?.template_id !== null && currentMag?.template_id !== 0,
     }),
     [currentMag]
   );
@@ -466,23 +471,28 @@ export default function MagsEditForm({ currentMag, templates = [] }: MagsEditFor
                     )}
                   />
 
-                  {!customBouquet && availableTemplates.length > 0 && (
+                  {(currentPackage && customBouquetValue && availableTemplates.length > 0) && (
                     <Controller
                       name="template_id"
                       control={control}
                       render={({ field }) => (
                         <FormControl fullWidth error={!!errors.template_id}>
-                          <InputLabel>Select Template</InputLabel>
+                          <InputLabel>Select Template (Optional)</InputLabel>
                           <Select
                             {...field}
-                            label="Select Template"
+                            label="Select Template (Optional)"
                             value={selectedTemplateId || ''}
                             onChange={(e) => {
                               field.onChange(e);
-                              handleTemplateChange(e.target.value);
+                              const templateValue = e.target.value;
+                              handleTemplateChange(templateValue);
+                              // If template is selected, turn off custom bouquet mode
+                              if (templateValue) {
+                                setCustomBouquet(false);
+                              }
                             }}
                           >
-                            <MenuItem value="">None</MenuItem>
+                            <MenuItem value="">None - Use Custom Bouquets</MenuItem>
                             {availableTemplates.map((template) => (
                               <MenuItem key={template.id} value={template.id?.toString()}>
                                 {template.title || template.name || `Template ${template.id}`}
@@ -492,6 +502,9 @@ export default function MagsEditForm({ currentMag, templates = [] }: MagsEditFor
                           {errors.template_id && (
                             <FormHelperText>{errors.template_id.message}</FormHelperText>
                           )}
+                          <FormHelperText>
+                            Select a template to use predefined bouquets, or leave as &quot;None&quot; to select custom bouquets below
+                          </FormHelperText>
                         </FormControl>
                       )}
                     />
@@ -521,7 +534,7 @@ export default function MagsEditForm({ currentMag, templates = [] }: MagsEditFor
       </Grid>
 
       {/* Full-width card for bouquets selection */}
-      {!selectedTemplateId && allBouquets.length > 0 && (
+      {(currentPackage && !customBouquetValue && allBouquets.length > 0) && (
         <Card sx={{ width: '100%', mt: 3 }}>
           <CardContent sx={{ p: 4 }}>
             <Typography variant="h6" sx={{ mb: 3 }}>

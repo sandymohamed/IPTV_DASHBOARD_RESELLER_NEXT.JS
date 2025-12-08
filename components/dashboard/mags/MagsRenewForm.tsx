@@ -114,9 +114,25 @@ export default function MagsRenewForm({
 
   // Initialize template if mag has one
   useEffect(() => {
-    if (currentMag?.template_id) {
+    if (currentMag?.template_id !== undefined && currentMag?.template_id !== null) {
       setSelectedTemplateId(currentMag.template_id.toString());
-      setCustomBouquet(true); // Template requires custom toggle ON
+      // If template_id is 0, set custom to false (show drag-drop bouquets)
+      if (currentMag.template_id === 0) {
+        setCustomBouquet(false);
+        // Load mag's current bouquets if they have any
+        if (currentMag?.bouquet) {
+          try {
+            const bouquets = Array.isArray(currentMag.bouquet) 
+              ? currentMag.bouquet 
+              : (typeof currentMag.bouquet === 'string' ? JSON.parse(currentMag.bouquet) : []);
+            setSelectedBouquets(bouquets || []);
+          } catch (err) {
+            console.error('Error parsing bouquets:', err);
+          }
+        }
+      } else {
+        setCustomBouquet(true); // Template exists and is not 0, show template select
+      }
     } else {
       // Load mag's current bouquets if they have any
       if (currentMag?.bouquet) {
@@ -138,7 +154,7 @@ export default function MagsRenewForm({
       pkg: currentMag?.pkg?.toString() || '',
       package_id_type: '0',
       template_id: currentMag?.template_id?.toString() || '',
-      custom: !currentMag?.template_id,
+      custom: currentMag?.template_id !== undefined && currentMag?.template_id !== null && currentMag?.template_id !== 0,
       reseller_notes: currentMag?.reseller_notes || '',
     }),
     [currentMag]

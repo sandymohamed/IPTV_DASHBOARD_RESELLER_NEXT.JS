@@ -84,15 +84,15 @@ const columns: readonly Column[] = [
       <Chip size="small" label={ <OnlinePredictionIcon fontSize="small" /> } color={value > 0 ? 'success' : 'error'} />
     ),
   },
-  {
-    id: 'speed_Mbps',
-    label: 'Speed',
-    minWidth: 80,
-    align: 'center',
-    format: (value: number) => (
-      <Chip size="small" label={`${value || 0} Mbps`} color={value > 50 ? 'warning' : 'primary'} />
-    ),
-  },
+  // {
+  //   id: 'speed_Mbps',
+  //   label: 'Speed',
+  //   minWidth: 80,
+  //   align: 'center',
+  //   format: (value: number) => (
+  //     <Chip size="small" label={`${value || 0} Mbps`} color={value > 50 ? 'warning' : 'primary'} />
+  //   ),
+  // },
   { id: 'username', label: 'User name', minWidth: 120 },
   { id: 'password', label: 'Password', minWidth: 100 },
   {
@@ -186,27 +186,86 @@ const columns: readonly Column[] = [
       <Chip size="small" label={`${row.active_connections} / ${row.max_connections}`} color="primary" variant="outlined" />
     ),
   },
-  {
-    id: 'watching',
-    label: 'Watching',
-    align: 'center',
-    format: (value: any, row: any) => (
-      <Typography variant="body2" color="text.secondary">
-        {row.stream_display_name}
-        {row.date_start && (
-          <ElapsedTimeCounter dateStart={row.date_start} />
-        )}
-      </Typography>
-    )
-  },
+  // {
+  //   id: 'watching',
+  //   label: 'Watching',
+  //   align: 'center',
+  //   format: (value: any, row: any) => (
+  //     <Typography variant="body2" color="text.secondary">
+  //       {row.stream_display_name}
+  //       {row.date_start && (
+  //         <ElapsedTimeCounter dateStart={row.date_start} />
+  //       )}
+  //     </Typography>
+  //   )
+  // },
   // TODO: Add country flag geoip_country_code
   {
-    id: 'user_ip', label: 'IP', align: 'center', format: (value: any, row: any) => (
-      <Typography sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>{value} -
-
-        <Box component="img" src={`/assets/flags_country/${row.geoip_country_code}.png`} />
-      </Typography>
-    )
+    id: 'user_ip', label: 'IP', align: 'center', format: (value: any, row: any) => {
+      const userIp = value || 'N/A';
+      const countryCode = row.geoip_country_code;
+      const hasCountryCode = countryCode && countryCode !== 'null' && countryCode !== null;
+      
+      return (
+        <Typography 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 1,
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <Box component="span" sx={{  textAlign: 'left' }}>
+            {userIp}
+          </Box>
+          {hasCountryCode && (
+            <>
+              <Box component="span" sx={{ color: 'text.secondary' }}>-</Box>
+              <Box
+                component="img"
+                src={`/assets/flags_country/${countryCode}.png`}
+                alt={countryCode}
+                onError={(e: any) => {
+                  // Hide broken image if flag doesn't exist
+                  e.target.style.display = 'none';
+                }}
+                sx={{
+                  width: 20,
+                  height: 15,
+                  objectFit: 'cover',
+                  borderRadius: 0.5,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
+              />
+              <Box 
+                component="span" 
+                sx={{ 
+                  fontSize: '0.75rem', 
+                  color: 'text.secondary',
+                  ml: 0.5,
+                }}
+              >
+                ({countryCode})
+              </Box>
+            </>
+          )}
+          {!hasCountryCode && userIp !== 'N/A' && (
+            <Box 
+              component="span" 
+              sx={{ 
+                fontSize: '0.75rem', 
+                color: 'text.disabled',
+                fontStyle: 'italic',
+              }}
+            >
+              (No location)
+            </Box>
+          )}
+        </Typography>
+      );
+    }
   },
   { id: 'owner_name', label: 'Owner', align: 'center' },
   {

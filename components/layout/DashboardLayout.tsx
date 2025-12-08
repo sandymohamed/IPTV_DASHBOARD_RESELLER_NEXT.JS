@@ -50,10 +50,28 @@ function DashboardLayout({ children, user }: DashboardLayoutProps) {
       // Find the main scrollable container in the Main component
       const mainElement = document.querySelector('main');
       if (mainElement) {
-        const scrollableBox = mainElement.querySelector('[style*="overflow-y"]') as HTMLElement;
-        if (scrollableBox) {
-          scrollContainerRef.current = scrollableBox;
-          return scrollableBox;
+        // Look for the scrollable box - it's the Box with overflowY: 'auto' inside Container
+        const container = mainElement.querySelector('div[class*="MuiContainer"]');
+        if (container) {
+          const scrollableBox = container.querySelector('div[style*="overflow-y"]') as HTMLElement;
+          if (scrollableBox) {
+            const style = getComputedStyle(scrollableBox);
+            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+              scrollContainerRef.current = scrollableBox;
+              return scrollableBox;
+            }
+          }
+        }
+        // Fallback: check all divs in main for scrollable ones
+        const allDivs = mainElement.querySelectorAll('div');
+        for (const div of allDivs) {
+          const style = getComputedStyle(div);
+          if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+            if (div.scrollHeight > div.clientHeight) {
+              scrollContainerRef.current = div;
+              return div;
+            }
+          }
         }
       }
       return null;
@@ -61,11 +79,14 @@ function DashboardLayout({ children, user }: DashboardLayoutProps) {
 
     let cleanup: (() => void) | undefined;
 
-    // Wait a bit for the DOM to be ready
-    const timer = setTimeout(() => {
+    const checkScroll = () => {
       const container = findScrollContainer();
       
-      if (!container) return;
+      if (!container) {
+        setShowTopButton(false);
+        setShowBottomButton(false);
+        return;
+      }
 
       const handleScroll = () => {
         const { scrollTop, scrollHeight, clientHeight } = container;
@@ -80,11 +101,38 @@ function DashboardLayout({ children, user }: DashboardLayoutProps) {
       cleanup = () => {
         container.removeEventListener('scroll', handleScroll);
       };
-    }, 100);
+    };
+
+    // Wait a bit for the DOM to be ready
+    const timer = setTimeout(checkScroll, 200);
+
+    // Also check when route changes or content updates
+    const observer = new MutationObserver(() => {
+      // Debounce the check
+      setTimeout(checkScroll, 100);
+    });
+
+    const mainElement = document.querySelector('main');
+    if (mainElement) {
+      observer.observe(mainElement, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class'],
+      });
+    }
+
+    // Also check on window resize
+    const handleResize = () => {
+      setTimeout(checkScroll, 100);
+    };
+    window.addEventListener('resize', handleResize);
 
     return () => {
       clearTimeout(timer);
       if (cleanup) cleanup();
+      observer.disconnect();
+      window.removeEventListener('resize', handleResize);
     };
   }, [children, navCollapsed]);
 
