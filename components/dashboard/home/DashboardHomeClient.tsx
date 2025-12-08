@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback, useTransition } from 'react';
+import { useMemo, useState, useCallback, useTransition, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -27,7 +27,6 @@ import PeopleIcon from '@mui/icons-material/People';
 import DevicesIcon from '@mui/icons-material/Devices';
 import TvIcon from '@mui/icons-material/Tv';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import LinkIcon from '@mui/icons-material/Link';
@@ -70,13 +69,6 @@ interface DashboardHomeClientProps {
   error?: string | null;
 }
 
-interface ExpiredUser {
-  id: number;
-  username: string;
-  exp_date: number;
-  reseller_notes?: string;
-  type?: string;
-}
 
 const expiredTableColumns = [
   { id: 'ID', label: 'ID', minWidth: 80 },
@@ -96,12 +88,26 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
   const [expiredWeekFilter, setExpiredWeekFilter] = useState('');
   const [expiredFilter, setExpiredFilter] = useState('');
   const [isPending, startTransition] = useTransition();
+
+  // Automatically redirect to login when session expires
+  useEffect(() => {
+    if (error === 'SESSION_EXPIRED') {
+      setLoading(true);
+      startTransition(async () => {
+        await signOut({
+          callbackUrl: '/auth/login',
+          redirect: true
+        });
+      });
+    }
+  }, [error, setLoading, startTransition]);
+
   const handleReAuth = useCallback(() => {
     setLoading(true);
     startTransition(async () => {
-      await signOut({ 
+      await signOut({
         callbackUrl: '/auth/login',
-        redirect: true 
+        redirect: true
       });
     });
   }, [startTransition, setLoading]);
@@ -109,6 +115,9 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
   // Filter expired week data
   const filteredExpiredWeek = useMemo(() => {
     if (!stats?.expired_week) return [];
+
+    console.log("stats", stats)
+
     if (!expiredWeekFilter) return stats.expired_week;
     return stats.expired_week.filter((item) =>
       item.username?.toLowerCase().includes(expiredWeekFilter.toLowerCase())
@@ -211,7 +220,7 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
     <Box>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ mb: 1, fontWeight: 700, background: 'linear-gradient(45deg, #1976d2 30%, #9c27b0 90%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          Welcome back, {user?.adm_username || user?.name || 'User'}! 
+          Welcome back, {user?.adm_username || user?.name || 'User'}!
         </Typography>
         <Typography variant="body1" color="text.secondary">
           Here&apos;s an overview of your IPTV dashboard
@@ -221,8 +230,8 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* Online Users */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            sx={{ 
+          <Card
+            sx={{
               height: '100%',
               background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
               color: 'white',
@@ -254,8 +263,8 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
 
         {/* Created Today */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            sx={{ 
+          <Card
+            sx={{
               height: '100%',
               background: 'linear-gradient(135deg, #00b8d9 0%, #00a8cc 100%)',
               color: 'white',
@@ -284,8 +293,8 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
 
         {/* Created Month */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            sx={{ 
+          <Card
+            sx={{
               height: '100%',
               background: 'linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%)',
               color: 'white',
@@ -314,8 +323,8 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
 
         {/* Open Connections */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            sx={{ 
+          <Card
+            sx={{
               height: '100%',
               background: 'linear-gradient(135deg, #ffab00 0%, #ff8f00 100%)',
               color: 'white',
@@ -344,8 +353,8 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
 
         {/* Active Subscriptions */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            sx={{ 
+          <Card
+            sx={{
               height: '100%',
               background: 'linear-gradient(135deg, #212b36 0%, #161c24 100%)',
               color: 'white',
@@ -374,8 +383,8 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
 
         {/* Total Lines */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            sx={{ 
+          <Card
+            sx={{
               height: '100%',
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
@@ -404,8 +413,8 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
 
         {/* Total Mags */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            sx={{ 
+          <Card
+            sx={{
               height: '100%',
               background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
               color: 'white',
@@ -434,8 +443,8 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
 
         {/* Total Enigmas */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card 
-            sx={{ 
+          <Card
+            sx={{
               height: '100%',
               background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
               color: 'white',

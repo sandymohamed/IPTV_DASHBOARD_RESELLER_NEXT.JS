@@ -26,6 +26,7 @@ import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { showToast } from '@/lib/utils/toast';
 import dynamic from 'next/dynamic';
+import PackageInfoCard from '@/components/dashboard/PackageInfoCard';
 
 const DragDropCheckbox = dynamic(() => import('@/components/form/DragDropCheckbox'), {
   ssr: false,
@@ -651,43 +652,7 @@ export default function UserRenewForm({
         )}
 
         <Grid item xs={12} md={4}>
-          <Card sx={{ p: 2 }}>
-            <Stack spacing={2}>
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Max Connections
-                </Typography>
-                <Typography variant="body1">{selectedPackage?.max_connections ?? 0}</Typography>
-              </Box>
-
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Expires In
-                </Typography>
-                <Typography variant="body1">
-                  {expDate ? expDate.toLocaleString() : 'N/A'}
-                </Typography>
-              </Box>
-
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Price
-                </Typography>
-                <Typography variant="body1">
-                  {packageTypes[selectedTypeIndex]?.credit ?? selectedPackage?.official_credits ?? 0} Credits
-                </Typography>
-              </Box>
-
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Your Balance
-                </Typography>
-                <Typography variant="h6" color={balance >= (packageTypes[selectedTypeIndex]?.credit ?? 0) ? 'success.main' : 'error.main'}>
-                  {balance} Credits
-                </Typography>
-              </Box>
-            </Stack>
-          </Card>
+          <PackageInfoCard selectedPackage={selectedPackage} balance={balance} />
         </Grid>
       </Grid>
     </Box>

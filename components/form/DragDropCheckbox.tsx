@@ -27,11 +27,11 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import DragHandleIcon from '@mui/icons-material/DragHandle';
+import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
-import CheckBoxIcon from '@mui/icons-material/CheckBox';
-import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import DoneAllIcon from '@mui/icons-material/DoneAll';
+import DeselectIcon from '@mui/icons-material/Deselect';
 
 interface Bouquet {
   id: number;
@@ -95,18 +95,28 @@ const SortableItem = memo(function SortableItem({
         backgroundColor: isDragging
           ? (theme) => theme.palette.action.selected
           : 'transparent',
+        borderRadius: 1,
+        px: 1,
+        py: 0.5,
+        transition: (theme) =>
+          theme.transitions.create(['background-color', 'transform'], {
+            duration: theme.transitions.duration.short,
+          }),
         '&:hover': {
           backgroundColor: (theme) => theme.palette.action.hover,
           borderBottom: 0,
+          transform: 'translateX(4px)',
         },
       }}
     >
-      <DragIndicatorIcon
+      <DragHandleIcon
         sx={{
           color: 'text.disabled',
           cursor: 'grab',
+          mr: 0.5,
           '&:active': {
             cursor: 'grabbing',
+            color: 'primary.main',
           },
         }}
       />
@@ -115,7 +125,12 @@ const SortableItem = memo(function SortableItem({
         disableRipple
         checked={checked}
         icon={<RadioButtonUncheckedIcon />}
-        checkedIcon={<CheckCircleOutlineIcon />}
+        checkedIcon={<TaskAltIcon />}
+        sx={{
+          '& .MuiSvgIcon-root': {
+            fontSize: 24,
+          },
+        }}
         onChange={(e) => {
           e.stopPropagation();
           onItemChange();
@@ -236,22 +251,35 @@ export default function DragDropCheckbox({
         sx={{
           width: 1,
           boxShadow: (theme) => theme.shadows[2],
+          borderRadius: 2,
+          p: 2,
+          backgroundColor: 'background.paper',
           '&:hover': {
             boxShadow: (theme) => theme.shadows[4],
           },
         }}
       >
-        <Typography variant="h6" sx={{ m: 1 }}>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            mb: 2,
+            fontWeight: 600,
+            color: 'text.primary',
+          }}
+        >
           {title}
         </Typography>
 
-        <Box>
+        <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
           <Button
             variant="outlined"
             size="small"
-            sx={{ mr: 1, mb: 1 }}
-            startIcon={<CheckBoxIcon />}
+            startIcon={<DoneAllIcon />}
             onClick={handleSelectAllClick}
+            sx={{
+              textTransform: 'none',
+              borderRadius: 2,
+            }}
           >
             Select All
           </Button>
@@ -260,9 +288,12 @@ export default function DragDropCheckbox({
             variant="outlined"
             size="small"
             color="warning"
-            sx={{ mb: 1 }}
-            startIcon={<CheckBoxOutlineBlankIcon />}
+            startIcon={<DeselectIcon />}
             onClick={handleSelectNoneClick}
+            sx={{
+              textTransform: 'none',
+              borderRadius: 2,
+            }}
           >
             Select None
           </Button>
@@ -274,9 +305,8 @@ export default function DragDropCheckbox({
           <SortableContext items={itemsIds} strategy={verticalListSortingStrategy}>
             <Box
               sx={{
-                overflowY: 'auto',
-                maxHeight: '400px',
-                minHeight: '200px',
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
               {items.map((item) => (

@@ -13,4 +13,7 @@ export const NAV = {
 export const PATH_AFTER_LOGIN = '/dashboard/home';
 
 // API Configuration
+// export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://116.202.155.178:2511/';
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/';
+
+

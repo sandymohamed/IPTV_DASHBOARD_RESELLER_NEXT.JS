@@ -38,7 +38,20 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         )
       }
-      const token = jwt.sign(result.user, JWT_SECRET, { expiresIn: "24h" })
+      
+      // Ensure resellers is a string for backend compatibility
+      const userForToken = { ...result.user };
+      if (userForToken.resellers !== undefined) {
+        if (Array.isArray(userForToken.resellers)) {
+          userForToken.resellers = userForToken.resellers.join(',');
+        } else if (typeof userForToken.resellers !== 'string') {
+          userForToken.resellers = String(userForToken.resellers || '');
+        }
+      } else {
+        userForToken.resellers = '';
+      }
+      
+      const token = jwt.sign(userForToken, JWT_SECRET, { expiresIn: "24h" })
       
 
       console.log("result.session:", result)

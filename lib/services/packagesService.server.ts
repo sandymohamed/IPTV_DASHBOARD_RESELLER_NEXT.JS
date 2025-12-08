@@ -30,7 +30,7 @@ export async function getCachedPackages(memberGroupId: string): Promise<any[]> {
   }
   
   // Import fetchWithAuth dynamically to avoid client-side import
-  const { fetchWithAuth } = await import('@/lib/server/fetchWithAuth');
+  const { fetchWithAuth, AuthFetchError } = await import('@/lib/server/fetchWithAuth');
   
   try {
     const response = await fetchWithAuth<any>(`/packages/${memberGroupId}`);
@@ -44,9 +44,16 @@ export async function getCachedPackages(memberGroupId: string): Promise<any[]> {
     
     return packages;
   } catch (error) {
+    // Re-throw AuthFetchError with 401 status to trigger logout/redirect
+    if (error instanceof AuthFetchError) {
+      if (error.status === 401) {
+        throw error; // Re-throw 401 errors so they can be handled by the page
+      }
+    }
+    
     console.error('Failed to fetch packages:', error);
     
-    // If we have stale cache, return it anyway
+    // If we have stale cache, return it anyway (only for non-401 errors)
     if (cached) {
       console.log('Returning stale cache data due to fetch error');
       return cached.data;

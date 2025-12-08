@@ -28,6 +28,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { countries } from '@/lib/constants/countries';
 import { showToast } from '@/lib/utils/toast';
 import { getTemplates } from '@/lib/services/templatesService';
+import PackageInfoCard from '@/components/dashboard/PackageInfoCard';
 
 const DragDropCheckbox = dynamic(() => import('@/components/form/DragDropCheckbox'), {
   ssr: false,
@@ -72,6 +73,11 @@ export default function UserEditForm({ currentUser, packages = [], templates = [
   const [availableTemplates, setAvailableTemplates] = useState<any[]>(templates);
   const [customBouquet, setCustomBouquet] = useState(true);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+
+  // Get current package from user data
+  const currentPackage = useMemo(() => {
+    return currentUser?.packages?.[0] || null;
+  }, [currentUser]);
 
   // Initialize form data from currentUser
   useEffect(() => {
@@ -362,22 +368,31 @@ export default function UserEditForm({ currentUser, packages = [], templates = [
         <Typography variant="h4">Edit User: {currentUser.username}</Typography>
       </Box>
 
-      <Card sx={{ maxWidth: 1200, mx: 'auto' }}>
-        <CardContent sx={{ p: 4 }}>
+      {/* Alerts */}
+      {(error || success) && (
+        <Box sx={{ mb: 3, maxWidth: 1200, mx: 'auto' }}>
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
               {error}
             </Alert>
           )}
           {success && (
-            <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
+            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
               {success}
             </Alert>
           )}
+        </Box>
+      )}
 
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <Stack spacing={3}>
-              <Grid container spacing={2}>
+      {/* Two Column Layout: Form on Left, Package Info on Right */}
+      <Grid container spacing={3} sx={{ maxWidth: 1400, mx: 'auto' }}>
+        {/* Left Column - Form */}
+        <Grid item xs={12} lg={7}>
+          <Card>
+            <CardContent sx={{ p: 4 }}>
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <Stack spacing={3}>
+                  <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <Controller
                     name="username"
@@ -508,18 +523,25 @@ export default function UserEditForm({ currentUser, packages = [], templates = [
                 </>
               )}
 
-              <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
-                <Button variant="outlined" onClick={() => router.back()} disabled={submitting}>
-                  Cancel
-                </Button>
-                <Button type="submit" variant="contained" disabled={submitting}>
-                  {submitting ? 'Updating...' : 'Save Changes'}
-                </Button>
-              </Stack>
-            </Stack>
-          </form>
-        </CardContent>
-      </Card>
+                  <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
+                    <Button variant="outlined" onClick={() => router.back()} disabled={submitting}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" variant="contained" disabled={submitting}>
+                      {submitting ? 'Updating...' : 'Save Changes'}
+                    </Button>
+                  </Stack>
+                </Stack>
+              </form>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Right Column - Package Info */}
+        <Grid item xs={12} lg={5}>
+          <PackageInfoCard selectedPackage={currentPackage} />
+        </Grid>
+      </Grid>
 
       {/* Full-width card for bouquets selection */}
       {!selectedTemplateId && allBouquets.length > 0 && (

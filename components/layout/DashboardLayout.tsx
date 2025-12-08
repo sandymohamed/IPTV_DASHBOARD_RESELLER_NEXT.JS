@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, memo, useCallback, useEffect, Suspense } from 'react';
-import { Box } from '@mui/material';
+import { useState, memo, useCallback, useEffect, Suspense, useRef } from 'react';
+import { Box, Fab, Tooltip } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import Main from './Main';
@@ -17,8 +20,12 @@ interface DashboardLayoutProps {
 const NAV_COLLAPSED_KEY = 'nav-collapsed';
 
 function DashboardLayout({ children, user }: DashboardLayoutProps) {
+  const theme = useTheme();
   const [openNav, setOpenNav] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
+  const [showTopButton, setShowTopButton] = useState(false);
+  const [showBottomButton, setShowBottomButton] = useState(false);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
 
   // Load collapsed state from localStorage on mount
   useEffect(() => {
@@ -36,6 +43,68 @@ function DashboardLayout({ children, user }: DashboardLayoutProps) {
       localStorage.setItem(NAV_COLLAPSED_KEY, JSON.stringify(navCollapsed));
     }
   }, [navCollapsed]);
+
+  // Find and monitor the scrollable container
+  useEffect(() => {
+    const findScrollContainer = () => {
+      // Find the main scrollable container in the Main component
+      const mainElement = document.querySelector('main');
+      if (mainElement) {
+        const scrollableBox = mainElement.querySelector('[style*="overflow-y"]') as HTMLElement;
+        if (scrollableBox) {
+          scrollContainerRef.current = scrollableBox;
+          return scrollableBox;
+        }
+      }
+      return null;
+    };
+
+    let cleanup: (() => void) | undefined;
+
+    // Wait a bit for the DOM to be ready
+    const timer = setTimeout(() => {
+      const container = findScrollContainer();
+      
+      if (!container) return;
+
+      const handleScroll = () => {
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        
+        setShowTopButton(scrollTop > 100);
+        setShowBottomButton(scrollTop + clientHeight < scrollHeight - 100);
+      };
+
+      container.addEventListener('scroll', handleScroll);
+      handleScroll(); // Initial check
+
+      cleanup = () => {
+        container.removeEventListener('scroll', handleScroll);
+      };
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      if (cleanup) cleanup();
+    };
+  }, [children, navCollapsed]);
+
+  const scrollToTop = useCallback(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+    }
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, []);
 
   const handleCloseNav = useCallback(() => {
     setOpenNav(false);
@@ -73,6 +142,63 @@ function DashboardLayout({ children, user }: DashboardLayoutProps) {
             {children}
           </Suspense>
         </Main>
+
+        {/* Scroll Buttons */}
+        <Box
+          sx={{
+            position: 'fixed',
+            right: { xs: 16, md: 24 },
+            bottom: { xs: 16, md: 24 },
+            zIndex: theme.zIndex.speedDial,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.5,
+          }}
+        >
+          {showTopButton && (
+            <Tooltip title="Scroll to top" placement="left" arrow>
+              <Fab
+                color="primary"
+                size="medium"
+                onClick={scrollToTop}
+                sx={{
+                  boxShadow: theme.shadows[8],
+                  '&:hover': {
+                    boxShadow: theme.shadows[12],
+                    transform: 'translateY(-2px)',
+                  },
+                  transition: theme.transitions.create(['transform', 'box-shadow'], {
+                    duration: theme.transitions.duration.short,
+                  }),
+                }}
+              >
+                <KeyboardArrowUpIcon />
+              </Fab>
+            </Tooltip>
+          )}
+
+          {showBottomButton && (
+            <Tooltip title="Scroll to bottom" placement="left" arrow>
+              <Fab
+                color="secondary"
+                size="medium"
+                onClick={scrollToBottom}
+                sx={{
+                  boxShadow: theme.shadows[8],
+                  '&:hover': {
+                    boxShadow: theme.shadows[12],
+                    transform: 'translateY(2px)',
+                  },
+                  transition: theme.transitions.create(['transform', 'box-shadow'], {
+                    duration: theme.transitions.duration.short,
+                  }),
+                }}
+              >
+                <KeyboardArrowDownIcon />
+              </Fab>
+            </Tooltip>
+          )}
+        </Box>
       </Box>
     </DashboardUserProvider>
   );

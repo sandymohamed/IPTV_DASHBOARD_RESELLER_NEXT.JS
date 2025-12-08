@@ -8,9 +8,12 @@ export default async function HomePage() {
   let error: string | null = null;
 
   try {
+    console.log("try 3333")
     const data = await fetchWithAuth<DashboardStats>('/main/dashbord', { method: 'GET' });
     stats = data;
+    console.log("stats 1111", stats)
   } catch (err) {
+    console.log("err 2222", err)
     if (err instanceof AuthFetchError) {
       error = err.status === 401 ? 'SESSION_EXPIRED' : err.message;
     } else if (err instanceof Error) {

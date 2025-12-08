@@ -72,7 +72,22 @@ async function executeEnigmasQuery(params: {
 
         // Permission check
         if (session.user.level !== 1) {
-            condition += ` AND (users.created_by = ${session.user.id} OR users.created_by IN (${session.user.resellers || ''}))`
+            const resellers = session.user.resellers;
+            // Handle both string and array formats
+            let resellerIds: string = '';
+            if (resellers) {
+                if (Array.isArray(resellers) && resellers.length > 0) {
+                    resellerIds = resellers.join(',');
+                } else if (typeof resellers === 'string' && resellers.trim() !== '') {
+                    resellerIds = resellers.trim();
+                }
+            }
+            
+            if (resellerIds) {
+                condition += ` AND (users.created_by = ${session.user.id} OR users.created_by IN (${resellerIds}))`
+            } else {
+                condition += ` AND users.created_by = ${session.user.id}`
+            }
         }
 
         if (is_trial !== null) {

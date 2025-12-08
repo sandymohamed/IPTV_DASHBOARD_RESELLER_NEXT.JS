@@ -29,6 +29,7 @@ import { countries } from '@/lib/constants/countries';
 import { showToast } from '@/lib/utils/toast';
 import { createMagAction } from '@/app/dashboard/mags/new/actions';
 import { getTemplates } from '@/lib/services/templatesService';
+import PackageInfoCard from '@/components/dashboard/PackageInfoCard';
 
 const DragDropCheckbox = dynamic(() => import('@/components/form/DragDropCheckbox'), {
   ssr: false,
@@ -315,95 +316,85 @@ export default function MagsCreateForm({ packages, templates = [] }: MagsCreateF
         <Typography variant="h4">Create MAG Device</Typography>
       </Box>
 
-      <Card sx={{ maxWidth: 800, mx: 'auto' }}>
-        <CardContent sx={{ p: 4 }}>
+      {/* Alerts */}
+      {(error || success) && (
+        <Box sx={{ mb: 3, maxWidth: 1200, mx: 'auto' }}>
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
               {error}
             </Alert>
           )}
           {success && (
-            <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
+            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
               {success}
             </Alert>
           )}
+        </Box>
+      )}
 
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <Stack spacing={3}>
-              <Controller
-                name="mac"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Device MAC Address *"
-                    placeholder="00:11:22:33:44:55"
-                    fullWidth
-                    error={!!errors.mac}
-                    helperText={errors.mac?.message || 'Format: 00:11:22:33:44:55 or 00-11-22-33-44-55'}
-                  />
-                )}
-              />
-
-              <Controller
-                name="forced_country"
-                control={control}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.forced_country}>
-                    <InputLabel>Allowed Country</InputLabel>
-                    <Select {...field} label="Allowed Country">
-                      {countries.map((country) => (
-                        <MenuItem key={country.id} value={country.id}>
-                          {country.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.forced_country && (
-                      <FormHelperText>{errors.forced_country.message}</FormHelperText>
+      {/* Two Column Layout: Form on Left, Package Info on Right */}
+      <Grid container spacing={3} sx={{ maxWidth: 1400, mx: 'auto' }}>
+        {/* Left Column - Form */}
+        <Grid item xs={12} lg={7}>
+          <Card>
+            <CardContent sx={{ p: 4 }}>
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <Stack spacing={3}>
+                  <Controller
+                    name="mac"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Device MAC Address *"
+                        placeholder="00:11:22:33:44:55"
+                        fullWidth
+                        error={!!errors.mac}
+                        helperText={errors.mac?.message || 'Format: 00:11:22:33:44:55 or 00-11-22-33-44-55'}
+                      />
                     )}
-                  </FormControl>
-                )}
-              />
+                  />
 
-              <Controller
-                name="pkg"
-                control={control}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.pkg}>
-                    <InputLabel>Package</InputLabel>
-                    <Select {...field} label="Package">
-                      {availablePackages.map((pkg) => (
-                        <MenuItem
-                          key={pkg.id || pkg.package_id}
-                          value={pkg.id?.toString() || pkg.package_id?.toString()}
-                        >
-                          {pkg.package_name || pkg.name} - {pkg.is_trial ? 'Trial' : 'Official'}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.pkg && <FormHelperText>{errors.pkg.message}</FormHelperText>}
-                  </FormControl>
-                )}
-              />
+                  <Controller
+                    name="forced_country"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth error={!!errors.forced_country}>
+                        <InputLabel>Allowed Country</InputLabel>
+                        <Select {...field} label="Allowed Country">
+                          {countries.map((country) => (
+                            <MenuItem key={country.id} value={country.id}>
+                              {country.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {errors.forced_country && (
+                          <FormHelperText>{errors.forced_country.message}</FormHelperText>
+                        )}
+                      </FormControl>
+                    )}
+                  />
 
-              {selectedPackage && (
-                <Card variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                    Package Info:
-                  </Typography>
-                  <Stack spacing={0.5}>
-                    <Typography variant="body2">
-                      Max Connections: {selectedPackage.max_connections || 0}
-                    </Typography>
-                    <Typography variant="body2">
-                      Duration: {selectedPackage.official_duration || 0} {selectedPackage.official_duration_in || ''}
-                    </Typography>
-                    <Typography variant="body2">
-                      Price: {selectedPackage.official_credits || 0} credits
-                    </Typography>
-                  </Stack>
-                </Card>
-              )}
+                  <Controller
+                    name="pkg"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth error={!!errors.pkg}>
+                        <InputLabel>Package</InputLabel>
+                        <Select {...field} label="Package">
+                          {availablePackages.map((pkg) => (
+                            <MenuItem
+                              key={pkg.id || pkg.package_id}
+                              value={pkg.id?.toString() || pkg.package_id?.toString()}
+                            >
+                              {pkg.package_name || pkg.name} - {pkg.is_trial ? 'Trial' : 'Official'}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {errors.pkg && <FormHelperText>{errors.pkg.message}</FormHelperText>}
+                      </FormControl>
+                    )}
+                  />
 
               <Controller
                 name="is_trial"
@@ -502,18 +493,25 @@ export default function MagsCreateForm({ packages, templates = [] }: MagsCreateF
                 />
               )}
 
-              <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
-                <Button variant="outlined" onClick={() => router.back()} disabled={submitting}>
-                  Cancel
-                </Button>
-                <Button type="submit" variant="contained" disabled={submitting}>
-                  {submitting ? 'Creating...' : 'Create MAG Device'}
-                </Button>
-              </Stack>
-            </Stack>
-          </form>
-        </CardContent>
-      </Card>
+                  <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
+                    <Button variant="outlined" onClick={() => router.back()} disabled={submitting}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" variant="contained" disabled={submitting}>
+                      {submitting ? 'Creating...' : 'Create MAG Device'}
+                    </Button>
+                  </Stack>
+                </Stack>
+              </form>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Right Column - Package Info */}
+        <Grid item xs={12} lg={5}>
+          <PackageInfoCard selectedPackage={selectedPackage} />
+        </Grid>
+      </Grid>
 
       {/* Full-width card for bouquets selection */}
       {(selectedPackage && !customBouquetValue && allBouquets.length > 0) && (

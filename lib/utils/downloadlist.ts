@@ -1,4 +1,5 @@
 export const downloadlist = [
+    { label: "M3U ", value: "type=m3u&output=ts" },
     { label: "M3U Plus - HLS", value: "type=m3u_plus&output=hls" },
     { label: "M3U Plus - MPEGTS", value: "type=m3u_plus&output=mpegts" },
     { label: "Standard M3U - HLS", value: "type=m3u&output=hls" },

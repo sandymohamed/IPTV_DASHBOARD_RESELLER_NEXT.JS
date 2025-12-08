@@ -33,7 +33,19 @@ const authOptions: NextAuthOptions = {
               throw new Error('JWT_SECRET is not configured')
             }
 
-            const apiToken = jwt.sign(result.user, JWT_SECRET, { expiresIn: "1h" })
+            // Ensure resellers is a string for backend compatibility
+            const userForToken = { ...result.user };
+            if (userForToken.resellers !== undefined) {
+              if (Array.isArray(userForToken.resellers)) {
+                userForToken.resellers = userForToken.resellers.join(',');
+              } else if (typeof userForToken.resellers !== 'string') {
+                userForToken.resellers = String(userForToken.resellers || '');
+              }
+            } else {
+              userForToken.resellers = '';
+            }
+
+            const apiToken = jwt.sign(userForToken, JWT_SECRET, { expiresIn: "1h" })
 
             const userData = {
               ...result.user,
@@ -108,8 +120,19 @@ const authOptions: NextAuthOptions = {
         if (token.apiToken) {
           session.apiToken = token.apiToken as string
         } else if (token.user && JWT_SECRET) {
+          // Ensure resellers is a string for backend compatibility before generating apiToken
+          const userForToken = { ...(token.user as any) };
+          if (userForToken.resellers !== undefined) {
+            if (Array.isArray(userForToken.resellers)) {
+              userForToken.resellers = userForToken.resellers.join(',');
+            } else if (typeof userForToken.resellers !== 'string') {
+              userForToken.resellers = String(userForToken.resellers || '');
+            }
+          } else {
+            userForToken.resellers = '';
+          }
           // Generate apiToken on-demand from all user data
-          session.apiToken = jwt.sign(token.user, JWT_SECRET, { expiresIn: "1h" })
+          session.apiToken = jwt.sign(userForToken, JWT_SECRET, { expiresIn: "1h" })
         }
 
       } else {

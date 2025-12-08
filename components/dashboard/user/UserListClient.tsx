@@ -60,6 +60,10 @@ import DeleteConfirmation from '@/components/DeleteConfirmation';
 import { spliceLongText } from '@/components/hooks/useSpliceLongText';
 import Label from '@/components/Label';
 import { fTimestamp } from '@/lib/utils/formatTime';
+import ElapsedTimeCounter from './ElapsedTimeCounter';
+import OnlinePredictionIcon from '@mui/icons-material/OnlinePrediction';
+import WifiOffIcon from '@mui/icons-material/WifiOff';
+
 
 interface Column {
   id: string;
@@ -77,10 +81,18 @@ const columns: readonly Column[] = [
     minWidth: 80,
     align: 'center',
     format: (value: number) => (
-      <Chip size="small" label={value > 0 ? 'Online' : 'Offline'} color={value > 0 ? 'success' : 'default'} />
+      <Chip size="small" label={ <OnlinePredictionIcon fontSize="small" /> } color={value > 0 ? 'success' : 'error'} />
     ),
   },
- 
+  {
+    id: 'speed_Mbps',
+    label: 'Speed',
+    minWidth: 80,
+    align: 'center',
+    format: (value: number) => (
+      <Chip size="small" label={`${value || 0} Mbps`} color={value > 50 ? 'warning' : 'primary'} />
+    ),
+  },
   { id: 'username', label: 'User name', minWidth: 120 },
   { id: 'password', label: 'Password', minWidth: 100 },
   {
@@ -174,8 +186,28 @@ const columns: readonly Column[] = [
       <Chip size="small" label={`${row.active_connections} / ${row.max_connections}`} color="primary" variant="outlined" />
     ),
   },
+  {
+    id: 'watching',
+    label: 'Watching',
+    align: 'center',
+    format: (value: any, row: any) => (
+      <Typography variant="body2" color="text.secondary">
+        {row.stream_display_name}
+        {row.date_start && (
+          <ElapsedTimeCounter dateStart={row.date_start} />
+        )}
+      </Typography>
+    )
+  },
+  // TODO: Add country flag geoip_country_code
+  {
+    id: 'user_ip', label: 'IP', align: 'center', format: (value: any, row: any) => (
+      <Typography sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>{value} -
 
-  { id: 'user_ip', label: 'IP', align: 'center' },
+        <Box component="img" src={`/assets/flags_country/${row.geoip_country_code}.png`} />
+      </Typography>
+    )
+  },
   { id: 'owner_name', label: 'Owner', align: 'center' },
   {
     id: 'package_name',
@@ -484,7 +516,7 @@ function RowActions({ row }: { row: any }) {
   const [openTV, setOpenTV] = useState(false);
   const [openAndroid, setOpenAndroid] = useState(false);
 
-  const id = row.id ;
+  const id = row.id;
   const enabled = row?.enabled;
   const admin_enabled = row.admin_enabled;
   const download = row.download;
@@ -825,7 +857,7 @@ function TVAndroidDialog({ open, onClose, downloadData, row, android = false }: 
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    
+
     if (!mac) {
       setMacError('MAC address is required');
       return;
@@ -833,7 +865,7 @@ function TVAndroidDialog({ open, onClose, downloadData, row, android = false }: 
 
     try {
       setSubmitting(true);
-      
+
       if (!android) {
         const formData = {
           mac,
@@ -841,9 +873,9 @@ function TVAndroidDialog({ open, onClose, downloadData, row, android = false }: 
           playlist_url: link,
           exp_date: row.exp_date || 0,
         };
-        
+
         const res = await createDevice(formData);
-        
+
         if (res?.data?.success) {
           showToast.success('Created successfully');
           setMac('');
@@ -859,9 +891,9 @@ function TVAndroidDialog({ open, onClose, downloadData, row, android = false }: 
           name: playlistName,
           m3u: link,
         };
-        
+
         const res = await createAndroidDevice(androidData);
-        
+
         if (res) {
           showToast.success('Created successfully');
           setMac('');

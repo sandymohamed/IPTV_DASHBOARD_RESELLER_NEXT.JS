@@ -28,8 +28,16 @@ export default async function UserCreatePage() {
     packages = packagesResult.value || [];
   } else {
     const error = packagesResult.reason;
-    if (error instanceof AuthFetchError && (error as any).status === 401) {
+    // Check for 401 authentication errors and redirect to login immediately
+    if (error instanceof AuthFetchError && error.status === 401) {
       redirect('/auth/login?redirect=/dashboard/user/new');
+    }
+    // Also check if error has the AuthFetchError structure (for cases where instance check fails)
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'AuthFetchError') {
+      const authError = error as any;
+      if (authError.status === 401) {
+        redirect('/auth/login?redirect=/dashboard/user/new');
+      }
     }
     console.error('Error fetching packages:', error);
   }

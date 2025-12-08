@@ -18,6 +18,12 @@ import {
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import PeopleIcon from '@mui/icons-material/People';
+import StarIcon from '@mui/icons-material/Star';
+import { useDashboardUser } from '@/lib/contexts/DashboardUserContext';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
@@ -64,6 +70,7 @@ interface UserFormData {
 
 export default function UserCreateForm({ packages, templates = [] }: UserCreateFormProps) {
   const router = useRouter();
+  const { user } = useDashboardUser();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -113,7 +120,7 @@ export default function UserCreateForm({ packages, templates = [] }: UserCreateF
 
   const selectedPackageId = watch('pkg');
   const customBouquetValue = watch('custom');
-   const availablePackages = useMemo(() => packages ?? [], [packages]);
+  const availablePackages = useMemo(() => packages ?? [], [packages]);
 
   // Sync customBouquet state with form value
   useEffect(() => {
@@ -275,9 +282,9 @@ export default function UserCreateForm({ packages, templates = [] }: UserCreateF
         reseller_notes: data.reseller_notes || '',
         pkg: data.pkg,
         is_trial: data.is_trial,
-        bouquet: selectedTemplateId 
-          ? selectedBouquets 
-          : allOrder.length > 0 
+        bouquet: selectedTemplateId
+          ? selectedBouquets
+          : allOrder.length > 0
             ? allOrder.filter((item) => selectedBouquets.includes(item))
             : selectedBouquets,
         new_order: allOrder.length > 0 ? allOrder : selectedBouquets,
@@ -314,218 +321,444 @@ export default function UserCreateForm({ packages, templates = [] }: UserCreateF
         <Typography variant="h4">Create User</Typography>
       </Box>
 
-      <Card sx={{ maxWidth: 800, mx: 'auto' }}>
-        <CardContent sx={{ p: 4 }}>
+      {/* Alerts */}
+      {(error || success) && (
+        <Box sx={{ mb: 3, maxWidth: 1200, mx: 'auto' }}>
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
               {error}
             </Alert>
           )}
           {success && (
-            <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
+            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
               {success}
             </Alert>
           )}
+        </Box>
+      )}
 
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <Stack spacing={3}>
-              <Controller
-                name="username"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Username (Optional)"
-                    fullWidth
-                    error={!!errors.username}
-                    helperText={errors.username?.message}
-                  />
-                )}
-              />
-
-              <Controller
-                name="password"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Password (Optional)"
-                    type="password"
-                    fullWidth
-                    error={!!errors.password}
-                    helperText={errors.password?.message}
-                  />
-                )}
-              />
-
-              <Controller
-                name="forced_country"
-                control={control}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.forced_country}>
-                    <InputLabel>Allowed Country</InputLabel>
-                    <Select {...field} label="Allowed Country">
-                      {countries.map((country) => (
-                        <MenuItem key={country.id} value={country.id}>
-                          {country.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.forced_country && (
-                      <FormHelperText>{errors.forced_country.message}</FormHelperText>
+      {/* Two Column Layout: Form on Left, Package Info on Right */}
+      <Grid container spacing={3} sx={{ maxWidth: 1400, mx: 'auto' }}>
+        {/* Left Column - Form */}
+        <Grid item xs={12} lg={7}>
+          <Card>
+            <CardContent sx={{ p: 4 }}>
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <Stack spacing={3}>
+                  <Controller
+                    name="username"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Username (Optional)"
+                        fullWidth
+                        error={!!errors.username}
+                        helperText={errors.username?.message}
+                      />
                     )}
-                  </FormControl>
-                )}
-              />
-
-              <Controller
-                name="pkg"
-                control={control}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.pkg}>
-                    <InputLabel>Package</InputLabel>
-                    <Select {...field} label="Package">
-                      {availablePackages.map((pkg) => (
-                        <MenuItem
-                          key={pkg.id || pkg.package_id}
-                          value={pkg.id?.toString() || pkg.package_id?.toString()}
-                        >
-                          {pkg.package_name || pkg.name} - {pkg.is_trial ? 'Trial' : 'Official'}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.pkg && <FormHelperText>{errors.pkg.message}</FormHelperText>}
-                  </FormControl>
-                )}
-              />
-
-              {selectedPackage && (
-                <Card variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                    Package Info:
-                  </Typography>
-                  <Stack spacing={0.5}>
-                    <Typography variant="body2">
-                      Max Connections: {selectedPackage.max_connections || 0}
-                    </Typography>
-                    <Typography variant="body2">
-                      Duration: {selectedPackage.official_duration || 0} {selectedPackage.official_duration_in || ''}
-                    </Typography>
-                    <Typography variant="body2">
-                      Price: {selectedPackage.official_credits || 0} credits
-                    </Typography>
-                  </Stack>
-                </Card>
-              )}
-
-              <Controller
-                name="is_trial"
-                control={control}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.is_trial}>
-                    <InputLabel>Type</InputLabel>
-                    <Select {...field} label="Type">
-                      <MenuItem value={0}>Official</MenuItem>
-                      <MenuItem value={1}>Trial</MenuItem>
-                    </Select>
-                    {errors.is_trial && <FormHelperText>{errors.is_trial.message}</FormHelperText>}
-                  </FormControl>
-                )}
-              />
-
-              <Controller
-                name="reseller_notes"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Reseller Notes"
-                    fullWidth
-                    multiline
-                    rows={4}
-                    error={!!errors.reseller_notes}
-                    helperText={errors.reseller_notes?.message}
                   />
-                )}
-              />
-                {selectedPackage && (
-                <Controller
-                  name="custom"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          {...field}
-                          checked={customBouquet && !selectedTemplateId}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            handleCustomChange();
-                            // If enabling custom, clear template selection
-                            if (e.target.checked) {
-                              setSelectedTemplateId('');
-                            }
-                          }}
-                          disabled={!!selectedTemplateId}
+
+                  <Controller
+                    name="password"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Password (Optional)"
+                        type="password"
+                        fullWidth
+                        error={!!errors.password}
+                        helperText={errors.password?.message}
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name="forced_country"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth error={!!errors.forced_country}>
+                        <InputLabel>Allowed Country</InputLabel>
+                        <Select {...field} label="Allowed Country">
+                          {countries.map((country) => (
+                            <MenuItem key={country.id} value={country.id}>
+                              {country.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {errors.forced_country && (
+                          <FormHelperText>{errors.forced_country.message}</FormHelperText>
+                        )}
+                      </FormControl>
+                    )}
+                  />
+
+                  <Controller
+                    name="pkg"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth error={!!errors.pkg}>
+                        <InputLabel>Package</InputLabel>
+                        <Select {...field} label="Package">
+                          {availablePackages.map((pkg) => (
+                            <MenuItem
+                              key={pkg.id || pkg.package_id}
+                              value={pkg.id?.toString() || pkg.package_id?.toString()}
+                            >
+                              {pkg.package_name || pkg.name} - {pkg.is_trial ? 'Trial' : 'Official'}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {errors.pkg && <FormHelperText>{errors.pkg.message}</FormHelperText>}
+                      </FormControl>
+                    )}
+                  />
+
+                  <Controller
+                    name="is_trial"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth error={!!errors.is_trial}>
+                        <InputLabel>Type</InputLabel>
+                        <Select {...field} label="Type">
+                          <MenuItem value={0} disabled={selectedPackage?.is_trial}>Official</MenuItem>
+                          <MenuItem value={1} disabled={!selectedPackage?.is_trial}>Trial</MenuItem>
+                        </Select>
+                        {errors.is_trial && <FormHelperText>{errors.is_trial.message}</FormHelperText>}
+                      </FormControl>
+                    )}
+                  />
+
+                  <Controller
+                    name="reseller_notes"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Reseller Notes"
+                        fullWidth
+                        multiline
+                        rows={4}
+                        error={!!errors.reseller_notes}
+                        helperText={errors.reseller_notes?.message}
+                      />
+                    )}
+                  />
+                  {selectedPackage && (
+                    <Controller
+                      name="custom"
+                      control={control}
+                      render={({ field }) => (
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              {...field}
+                              checked={customBouquet && !selectedTemplateId}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                handleCustomChange();
+                                // If enabling custom, clear template selection
+                                if (e.target.checked) {
+                                  setSelectedTemplateId('');
+                                }
+                              }}
+                             
+                            />
+                          }
+                          label="Custom bouquet"
                         />
-                      }
-                      label="Custom bouquet"
+                      )}
                     />
                   )}
-                />
-              )}
 
-              {(selectedPackage && customBouquetValue && availableTemplates.length > 0 )&& (
-                <Controller
-                  name="template_id"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControl fullWidth error={!!errors.template_id}>
-                      <InputLabel>Select Template (Optional)</InputLabel>
-                      <Select
-                        {...field}
-                        label="Select Template (Optional)"
-                        value={selectedTemplateId || ''}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          const templateValue = e.target.value;
-                          handleTemplateChange(templateValue);
-                          // If template is selected, turn off custom bouquet mode
-                          if (templateValue) {
-                            setCustomBouquet(false);
+                  {(selectedPackage && customBouquetValue && availableTemplates.length > 0) && (
+                    <Controller
+                      name="template_id"
+                      control={control}
+                      render={({ field }) => (
+                        <FormControl fullWidth error={!!errors.template_id}>
+                          <InputLabel>Select Template (Optional)</InputLabel>
+                          <Select
+                            {...field}
+                            label="Select Template (Optional)"
+                            value={selectedTemplateId || ''}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              const templateValue = e.target.value;
+                              handleTemplateChange(templateValue);
+                              // If template is selected, turn off custom bouquet mode
+                              if (templateValue) {
+                                setCustomBouquet(false);
+                              }
+                            }}
+                          >
+                            <MenuItem value="">None - Use Custom Bouquets</MenuItem>
+                            {availableTemplates.map((template) => (
+                              <MenuItem key={template.id} value={template.id?.toString()}>
+                                {template.title || template.name || `Template ${template.id}`}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                          {errors.template_id && (
+                            <FormHelperText>{errors.template_id.message}</FormHelperText>
+                          )}
+                          <FormHelperText>
+                            Select a template to use predefined bouquets, or leave as &quot;None&quot; to select custom bouquets below
+                          </FormHelperText>
+                        </FormControl>
+                      )}
+                    />
+                  )}
+
+                  <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
+                    <Button variant="outlined" onClick={() => router.back()} disabled={submitting}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" variant="contained" disabled={submitting}>
+                      {submitting ? 'Creating...' : 'Create User'}
+                    </Button>
+                  </Stack>
+                </Stack>
+              </form>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Right Column - Package Info */}
+        <Grid item xs={12} lg={5}>
+          {selectedPackage ? (
+            <Card>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                  Package Information
+                </Typography>
+                <Grid container spacing={2}>
+                  {/* Balance Card */}
+                  <Grid item xs={12} sm={6}>
+                    <Card
+                      sx={{
+                        p: 2,
+                        bgcolor: 'background.default',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        transition: 'transform 0.2s, box-shadow 0.2s',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 2,
+                        }
+                      }}
+                    >
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Box
+                          sx={{
+                            p: 1,
+                            borderRadius: 1.5,
+                            bgcolor: 'primary.main',
+                            color: 'primary.contrastText',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <AccountBalanceWalletIcon sx={{ fontSize: 24 }} />
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                            Balance
+                          </Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                            {user?.balance?.toLocaleString() || 0}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Card>
+                  </Grid>
+
+                  {/* Max Connections Card */}
+                  <Grid item xs={12} sm={6}>
+                    <Card
+                      sx={{
+                        p: 2,
+                        bgcolor: 'background.default',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        transition: 'transform 0.2s, box-shadow 0.2s',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 2,
+                        }
+                      }}
+                    >
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Box
+                          sx={{
+                            p: 1,
+                            borderRadius: 1.5,
+                            bgcolor: 'info.main',
+                            color: 'info.contrastText',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <PeopleIcon sx={{ fontSize: 24 }} />
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                            Max Connections
+                          </Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                            {selectedPackage.max_connections || 0}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Card>
+                  </Grid>
+
+                  {/* Duration/Expire Card */}
+                  <Grid item xs={12} sm={6}>
+                    <Card
+                      sx={{
+                        p: 2,
+                        bgcolor: 'background.default',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        transition: 'transform 0.2s, box-shadow 0.2s',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 2,
+                        }
+                      }}
+                    >
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Box
+                          sx={{
+                            p: 1,
+                            borderRadius: 1.5,
+                            bgcolor: 'warning.main',
+                            color: 'warning.contrastText',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <CalendarTodayIcon sx={{ fontSize: 24 }} />
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                            Duration
+                          </Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                            {selectedPackage.official_duration || 0} {selectedPackage.official_duration_in || ''}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Card>
+                  </Grid>
+
+                  {/* Price/Credits Card */}
+                  <Grid item xs={12} sm={6}>
+                    <Card
+                      sx={{
+                        p: 2,
+                        bgcolor: 'background.default',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        transition: 'transform 0.2s, box-shadow 0.2s',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 2,
+                        }
+                      }}
+                    >
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Box
+                          sx={{
+                            p: 1,
+                            borderRadius: 1.5,
+                            bgcolor: 'success.main',
+                            color: 'success.contrastText',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <ShoppingCartIcon sx={{ fontSize: 24 }} />
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                            Price
+                          </Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                            {selectedPackage.official_credits || 0} credits
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Card>
+                  </Grid>
+
+                  {/* Package Type Card (Trial/Official) */}
+                  {selectedPackage.is_trial !== undefined && (
+                    <Grid item xs={12} sm={6}>
+                      <Card
+                        sx={{
+                          p: 2,
+                          bgcolor: 'background.default',
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderRadius: 2,
+                          transition: 'transform 0.2s, box-shadow 0.2s',
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: 2,
                           }
                         }}
                       >
-                        <MenuItem value="">None - Use Custom Bouquets</MenuItem>
-                        {availableTemplates.map((template) => (
-                          <MenuItem key={template.id} value={template.id?.toString()}>
-                            {template.title || template.name || `Template ${template.id}`}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {errors.template_id && (
-                        <FormHelperText>{errors.template_id.message}</FormHelperText>
-                      )}
-                      <FormHelperText>
-                        Select a template to use predefined bouquets, or leave as &quot;None&quot; to select custom bouquets below
-                      </FormHelperText>
-                    </FormControl>
+                        <Stack direction="row" spacing={1.5} alignItems="center">
+                          <Box
+                            sx={{
+                              p: 1,
+                              borderRadius: 1.5,
+                              bgcolor: selectedPackage.is_trial ? 'error.main' : 'secondary.main',
+                              color: 'common.white',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <StarIcon sx={{ fontSize: 24 }} />
+                          </Box>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                              Package Type
+                            </Typography>
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                              {selectedPackage.is_trial ? 'Trial' : 'Official'}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </Card>
+                    </Grid>
                   )}
-                />
-              )}
-
-              <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
-                <Button variant="outlined" onClick={() => router.back()} disabled={submitting}>
-                  Cancel
-                </Button>
-                <Button type="submit" variant="contained" disabled={submitting}>
-                  {submitting ? 'Creating...' : 'Create User'}
-                </Button>
-              </Stack>
-            </Stack>
-          </form>
-        </CardContent>
-      </Card>
+                </Grid>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Select a package to view information
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
+        </Grid>
+      </Grid>
 
       {/* Full-width card for bouquets selection */}
       {(selectedPackage && !customBouquetValue && allBouquets.length > 0) && (

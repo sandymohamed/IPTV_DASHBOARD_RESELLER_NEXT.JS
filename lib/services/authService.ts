@@ -60,7 +60,8 @@ export async function loginUser(credentials: {
         member_groups.group_color, 
         member_groups.is_reseller, 
         member_groups.is_banned,  
-        member_groups.is_admin
+        member_groups.is_admin,
+        COALESCE((SELECT GROUP_CONCAT(sub.adminid) FROM maa_admin sub WHERE sub.father = maa_admin.adminid OR sub.adminid = maa_admin.adminid), '') AS resellers
       FROM maa_admin 
       LEFT JOIN member_groups 
         ON maa_admin.member_group_id = member_groups.group_id  
@@ -224,12 +225,36 @@ function formatUserData(userData: any) {
         formattedUser.logo = `data:image/png;base64,${base64Image}`
     }
 
+    // Keep resellers as string for backend compatibility (backend expects string and calls .trim() on it)
+    // Convert to array only when needed in Next.js API routes
+    if (!formattedUser.resellers || formattedUser.resellers === '') {
+        formattedUser.resellers = ''
+    }
+    // Ensure it's a string (in case it comes as array from somewhere)
+    if (Array.isArray(formattedUser.resellers)) {
+        formattedUser.resellers = formattedUser.resellers.join(',')
+    }
+
     // Remove sensitive data
     delete formattedUser.adm_password
     delete formattedUser.password
     delete formattedUser.allowed_ips
 
     return formattedUser
+}
+
+// Helper function to convert resellers string to array for use in Next.js API routes
+export function getResellersArray(resellers: any): number[] {
+    if (!resellers) return []
+    if (Array.isArray(resellers)) return resellers.filter((id: any) => !isNaN(Number(id))).map((id: any) => Number(id))
+    if (typeof resellers === 'string') {
+        return resellers
+            .split(',')
+            .filter((id: string) => id.trim() !== '')
+            .map((id: string) => parseInt(id.trim(), 10))
+            .filter((id: number) => !isNaN(id))
+    }
+    return []
 }
 
 async function checkLoginTries(ip: string): Promise<string | null> {
