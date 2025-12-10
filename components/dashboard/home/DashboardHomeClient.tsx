@@ -67,6 +67,8 @@ export interface DashboardStats {
 interface DashboardHomeClientProps {
   stats: DashboardStats | null;
   error?: string | null;
+  movies?: any[];
+  series?: any[];
 }
 
 
@@ -78,7 +80,24 @@ const expiredTableColumns = [
   { id: 'Notes', label: 'Notes', minWidth: 200 },
 ];
 
-export default function DashboardHomeClient({ stats, error }: DashboardHomeClientProps) {
+const moviesTableColumns = [
+  { id: 'id', label: 'ID', minWidth: 80 },
+  { id: 'stream_display_name', label: 'Title', minWidth: 200 },
+  { id: 'stream_icon', label: 'Icon', minWidth: 100 },
+  { id: 'category_id', label: 'Category', minWidth: 100 },
+  { id: 'added', label: 'Added Date', minWidth: 150 },
+];
+
+const seriesTableColumns = [
+  { id: 'id', label: 'ID', minWidth: 80 },
+  { id: 'title', label: 'Title', minWidth: 200 },
+  { id: 'cover', label: 'Cover', minWidth: 100 },
+  { id: 'genre', label: 'Genre', minWidth: 150 },
+  { id: 'rating', label: 'Rating', minWidth: 100 },
+  { id: 'releaseDate', label: 'Release Date', minWidth: 150 },
+];
+
+export default function DashboardHomeClient({ stats, error, movies = [], series = [] }: DashboardHomeClientProps) {
   const { user } = useDashboardUser();
   const { setLoading } = useLoading();
   const [expiredWeekPage, setExpiredWeekPage] = useState(0);
@@ -115,8 +134,6 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
   // Filter expired week data
   const filteredExpiredWeek = useMemo(() => {
     if (!stats?.expired_week) return [];
-
-    console.log("stats", stats)
 
     if (!expiredWeekFilter) return stats.expired_week;
     return stats.expired_week.filter((item) =>
@@ -719,6 +736,158 @@ export default function DashboardHomeClient({ stats, error }: DashboardHomeClien
               onPageChange={handleExpiredPageChange}
               onRowsPerPageChange={handleExpiredRowsPerPageChange}
             />
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Movies and Series Tables */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Last 10 Movies */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
+            <CardHeader title="Last 10 New Movies" />
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    {moviesTableColumns.map((column) => (
+                      <TableCell
+                        key={column.id}
+                        align="center"
+                        sx={{ fontWeight: 600, bgcolor: 'background.default' }}
+                      >
+                        {column.label}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {movies.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={moviesTableColumns.length} align="center" sx={{ py: 3 }}>
+                        No movies available
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    movies.map((row) => (
+                      <TableRow
+                        hover
+                        key={row.id}
+                        sx={{
+                          borderBottom: '2px solid',
+                          borderColor: 'divider',
+                          '&:nth-of-type(odd)': {
+                            bgcolor: 'action.hover',
+                          },
+                        }}
+                      >
+                        <TableCell align="center" sx={{ typography: 'caption' }}>
+                          {row.id}
+                        </TableCell>
+                        <TableCell align="center" sx={{ typography: 'caption' }}>
+                          {row.stream_display_name || 'N/A'}
+                        </TableCell>
+                        <TableCell align="center" sx={{ typography: 'caption' }}>
+                          {row.stream_icon ? (
+                            <Avatar
+                              src={row.stream_icon}
+                              alt={row.stream_display_name}
+                              sx={{ width: 40, height: 40, mx: 'auto' }}
+                            />
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell align="center" sx={{ typography: 'caption' }}>
+                          {row.category_id || '-'}
+                        </TableCell>
+                        <TableCell align="center" sx={{ typography: 'caption' }}>
+                          {row.added ? fDate(row.added * 1000) : 'N/A'}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Card>
+        </Grid>
+
+        {/* Last 10 Series */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
+            <CardHeader title="Last 10 New Series" />
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    {seriesTableColumns.map((column) => (
+                      <TableCell
+                        key={column.id}
+                        align="center"
+                        sx={{ fontWeight: 600, bgcolor: 'background.default' }}
+                      >
+                        {column.label}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {series.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={seriesTableColumns.length} align="center" sx={{ py: 3 }}>
+                        No series available
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    series.map((row) => (
+                      <TableRow
+                        hover
+                        key={row.id}
+                        sx={{
+                          borderBottom: '2px solid',
+                          borderColor: 'divider',
+                          '&:nth-of-type(odd)': {
+                            bgcolor: 'action.hover',
+                          },
+                        }}
+                      >
+                        <TableCell align="center" sx={{ typography: 'caption' }}>
+                          {row.id}
+                        </TableCell>
+                        <TableCell align="center" sx={{ typography: 'caption' }}>
+                          {row.title || 'N/A'}
+                        </TableCell>
+                        <TableCell align="center" sx={{ typography: 'caption' }}>
+                          {row.cover || row.cover_big ? (
+                            <Avatar
+                              src={row.cover_big || row.cover}
+                              alt={row.title}
+                              sx={{ width: 40, height: 40, mx: 'auto' }}
+                            />
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell align="center" sx={{ typography: 'caption' }}>
+                          {row.genre || '-'}
+                        </TableCell>
+                        <TableCell align="center" sx={{ typography: 'caption' }}>
+                          {row.rating ? (
+                            <Chip label={row.rating} color="primary" size="small" />
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell align="center" sx={{ typography: 'caption' }}>
+                          {row.releaseDate || 'N/A'}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Card>
         </Grid>
       </Grid>
